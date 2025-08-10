@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Llamadas</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<style>
+  body { background: #f8f9fa; }
+  #map { height: 400px; margin-bottom: 20px; }
+  .card { border-radius: .75rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1); }
+</style>
+</head>
+<body>
+<div class="container py-3">
+  <h1 class="mb-4"><i class="fa fa-phone"></i> Gestión de Llamadas</h1>
+  <div id="app">
+    <div id="map" class="mb-3"></div>
+    <div class="card p-3 mb-3">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Semana</label>
+          <select id="filtroSemana" class="form-select"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Día</label>
+          <select id="filtroDia" class="form-select"></select>
+        </div>
+      </div>
+    </div>
+    <table class="table table-striped" id="tablaClientes">
+      <thead><tr><th>Cod Empresa</th><th>Cliente</th><th>Teléfono</th><th>Celular</th><th>Provincia</th><th>Acciones</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Modal de Registrar Llamada -->
+  <div class="modal fade" id="modalLlamada" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-phone"></i> Registrar Llamada</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formLlamada" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente</label>
+              <input type="text" id="ll_cliente" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cod Empresa</label>
+              <input type="text" id="ll_cod" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vendedor</label>
+              <input type="text" id="ll_vendedor" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Gestor Servicio</label>
+              <input type="text" id="ll_gestor" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Provincia</label>
+              <input type="text" id="ll_provincia" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Teléfono 1</label>
+              <input type="text" id="ll_telefono1" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Celular</label>
+              <input type="text" id="ll_celular" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fecha y hora</label>
+              <input type="text" id="ll_fecha" class="form-control" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Resultado</label>
+              <select id="ll_resultado" class="form-select">
+                <option>Exitosa</option>
+                <option>Pendiente</option>
+                <option>No contesta</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cita Showroom</label>
+              <select id="ll_cita" class="form-select">
+                <option>Cita showroom</option>
+                <option>No cita</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notas</label>
+              <textarea id="ll_notas" class="form-control" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="guardarLlamada">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script>
+let map = L.map('map').setView([18.7357, -70.1627], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const clientes = [
+  {cod:"C001", cliente:"Cliente Uno", telefono:"809-000-0001", celular:"829-000-0001", provincia:"La Altagracia", vendedor:"Pedro", gestor:"Juan"},
+  {cod:"C002", cliente:"Cliente Dos", telefono:"809-000-0002", celular:"829-000-0002", provincia:"Santo Domingo", vendedor:"Maria", gestor:"Ana"}
+];
+
+function renderTabla(){
+  const tbody = document.querySelector("#tablaClientes tbody");
+  tbody.innerHTML = "";
+  clientes.forEach(c=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.cod}</td>
+      <td>${c.cliente}</td>
+      <td>${c.telefono}</td>
+      <td>${c.celular}</td>
+      <td>${c.provincia}</td>
+      <td><button class="btn btn-sm btn-primary" onclick="abrirModal('${c.cod}')">Gestionar</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function abrirModal(cod){
+  const cli = clientes.find(x=>x.cod===cod);
+  if(!cli) return;
+  document.getElementById("ll_cliente").value = cli.cliente;
+  document.getElementById("ll_cod").value = cli.cod;
+  document.getElementById("ll_vendedor").value = cli.vendedor;
+  document.getElementById("ll_gestor").value = cli.gestor;
+  document.getElementById("ll_provincia").value = cli.provincia;
+  document.getElementById("ll_telefono1").value = cli.telefono;
+  document.getElementById("ll_celular").value = cli.celular;
+  document.getElementById("ll_fecha").value = new Date().toLocaleString();
+  new bootstrap.Modal(document.getElementById("modalLlamada")).show();
+}
+
+document.getElementById("guardarLlamada").addEventListener("click", ()=>{
+  const data = {
+    cliente: document.getElementById("ll_cliente").value,
+    cod: document.getElementById("ll_cod").value,
+    vendedor: document.getElementById("ll_vendedor").value,
+    gestor: document.getElementById("ll_gestor").value,
+    provincia: document.getElementById("ll_provincia").value,
+    telefono: document.getElementById("ll_telefono1").value,
+    celular: document.getElementById("ll_celular").value,
+    fecha: document.getElementById("ll_fecha").value,
+    resultado: document.getElementById("ll_resultado").value,
+    cita: document.getElementById("ll_cita").value,
+    notas: document.getElementById("ll_notas").value
+  };
+  const csv = Object.keys(data).join(",") + "\n" + Object.values(data).map(v=>`"${v}"`).join(",");
+  const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "llamada.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  bootstrap.Modal.getInstance(document.getElementById("modalLlamada")).hide();
+});
+
+renderTabla();
+</script>
+</body>
+</html>
