@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRM Llamadas — Frontend (GitHub Pages)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body { background: #f7fafc; }
+    .card { border-radius: 1rem; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .btn { border-radius: .75rem; }
+    .pill { border-radius:9999px; padding:.15rem .6rem; font-size:.75rem; }
+    .hidden-important { display: none !important; }
+    #map { min-height: 420px; }
+  </style>
+</head>
+<body class="text-gray-900">
+  <!-- Topbar -->
+  <header class="bg-white shadow p-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <img src="logo_almacenes_karaka.png" alt="Logo" class="h-10 w-auto"/>
+      <h1 class="text-xl font-bold">CRM de Llamadas</h1>
+      <span class="text-xs pill bg-indigo-100 text-indigo-700">Frontend estático</span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button id="btnOpenSettings" class="btn bg-gray-800 text-white px-3 py-2 hover:bg-gray-700"><i class="fa fa-gear"></i> Ajustes</button>
+      <button id="btnLogout" class="btn bg-red-600 text-white px-3 py-2 hover:bg-red-700 hidden"><i class="fa fa-right-from-bracket"></i> Salir</button>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <section id="loginSection" class="max-w-md mx-auto mt-10 bg-white p-6 card">
+    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-lock"></i> Acceso</h2>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm">Usuario</label>
+        <input type="text" id="loginUser" class="w-full p-2 border rounded" required/>
+      </div>
+      <div>
+        <label class="block text-sm">Contraseña</label>
+        <input type="password" id="loginPass" class="w-full p-2 border rounded" required/>
+      </div>
+      <button class="btn bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 w-full">Entrar</button>
+      <p class="text-xs text-gray-500">* Validación local contra la hoja <em>Usuarios</em> (CSV publicado).</p>
+    </form>
+    <div id="loginError" class="mt-3 text-sm text-red-600 hidden"></div>
+  </section>
+
+  <!-- App -->
+  <main id="appSection" class="hidden">
+    <!-- Filtros -->
+    <section class="max-w-7xl mx-auto mt-6 px-4">
+      <div class="bg-white p-4 card">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+          <div>
+            <label class="block text-sm">Semana</label>
+            <select id="fSemana" class="w-full p-2 border rounded"></select>
+          </div>
+          <div>
+            <label class="block text-sm">Día</label>
+            <select id="fDia" class="w-full p-2 border rounded"></select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm">Buscar cliente</label>
+            <input id="fSearch" type="text" class="w-full p-2 border rounded" placeholder="Nombre o Cod Empresa">
+          </div>
+          <div class="flex space-x-2">
+            <button id="btnLimpiar" class="btn bg-gray-200 px-4 py-2 hover:bg-gray-300"><i class="fa fa-eraser"></i> Limpiar</button>
+            <button id="btnExport" class="btn bg-green-600 text-white px-4 py-2 hover:bg-green-700"><i class="fa fa-file-export"></i> Exportar CSV</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla -->
+    <section class="max-w-7xl mx-auto mt-6 px-4">
+      <div class="bg-white p-4 card overflow-x-auto">
+        <h3 class="text-lg font-semibold mb-3">Clientes &nbsp;<span class="text-xs pill bg-blue-100 text-blue-700" id="badgeTotal">0</span></h3>
+        <table id="tablaClientes" class="min-w-full text-sm text-left text-gray-700 border">
+          <thead class="bg-gray-50 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-2">Cod Empresa</th>
+              <th class="px-4 py-2">Cliente</th>
+              <th class="px-4 py-2">Semana</th>
+              <th class="px-4 py-2">Día</th>
+              <th class="px-4 py-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Mapa -->
+    <section class="max-w-7xl mx-auto mt-6 px-4 mb-10">
+      <div class="bg-white p-4 card">
+        <h3 class="text-lg font-semibold mb-3">Mapa de clientes</h3>
+        <div id="map" class="w-full h-96 rounded"></div>
+        <p class="text-xs text-gray-500 mt-2">* Usa las coordenadas de las columnas <em>Latitud</em> y <em>Longitud</em> en <em>Clientes</em>, si existen.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ajustes (modal) -->
+  <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold"><i class="fa fa-gear"></i> Ajustes de fuentes (CSV publicados)</h3>
+        <button id="btnCloseSettings" class="text-gray-600 hover:text-black"><i class="fa fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">Pega aquí las URL de tus hojas publicadas como CSV (<em>Archivo → Compartir → Publicar en la web</em>). Se guardan en tu navegador (localStorage).</p>
+      <label class="block text-sm">URL CSV — Clientes</label>
+      <input id="urlClientes" class="w-full p-2 border rounded mb-3" placeholder="https://...output=csv">
+      <label class="block text-sm">URL CSV — Calendario</label>
+      <input id="urlCalendario" class="w-full p-2 border rounded mb-3" placeholder="https://...output=csv">
+      <label class="block text-sm">URL CSV — Usuarios</label>
+      <input id="urlUsuarios" class="w-full p-2 border rounded mb-6" placeholder="https://...output=csv">
+
+      <div class="flex items-center justify-between">
+        <div class="text-xs text-gray-500">
+          Clave de unión: <strong>Cod Empresa</strong>. Si un cliente no está en Calendario ⇒ Semana y Día = <em>Por asignar</em>.
+        </div>
+        <div class="space-x-2">
+          <button id="btnGuardarSettings" class="btn bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Guardar</button>
+          <button id="btnProbarCarga" class="btn bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Probar carga</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================== CONFIG ==================
+    const DEFAULT_URL_CLIENTES   = "REEMPLAZA_AQUI_CLIENTES_CSV";
+    const DEFAULT_URL_CALENDARIO = "REEMPLAZA_AQUI_CALENDARIO_CSV";
+    const DEFAULT_URL_USUARIOS   = "REEMPLAZA_AQUI_USUARIOS_CSV";
+
+    // Cargamos un valor inicial de ejemplo (el tuyo publicado) en Clientes para facilitar la primera prueba
+    // Si pegaste una sola URL, puedes reutilizarla temporalmente en Clientes hasta tener los 3 gid por pestaña.
+    if (DEFAULT_URL_CLIENTES === "REEMPLAZA_AQUI_CLIENTES_CSV") {
+      // El usuario nos compartió un CSV publicado; lo usamos como inicial por si acaso
+      // (Dejar vacío por defecto si se prefiere)
+    }
+
+    const KEY_JOIN = "Cod Empresa";
+    const COL_SEMANA = "Semana";  // Calendario
+    const COL_DIA    = "Dia";     // o "Día"
+
+    // ================== ESTADO ==================
+    let STATE = {
+      urls: {
+        clientes: localStorage.getItem("url_clientes") || DEFAULT_URL_CLIENTES,
+        calendario: localStorage.getItem("url_calendario") || DEFAULT_URL_CALENDARIO,
+        usuarios: localStorage.getItem("url_usuarios") || DEFAULT_URL_USUARIOS,
+      },
+      user: null,
+      data: { clientes: [], calendario: [], usuarios: [] },
+      joined: []
+    };
+
+    // ================== UI HELPERS ==================
+    const qs = s => document.querySelector(s);
+    const qsa = s => Array.from(document.querySelectorAll(s));
+    function show(el){ el.classList.remove("hidden"); }
+    function hide(el){ el.classList.add("hidden"); }
+    function toast(msg){ alert(msg); }
+
+    // ================== SETTINGS MODAL ==================
+    const settingsModal = qs("#settingsModal");
+    qs("#btnOpenSettings").addEventListener("click", ()=>{
+      qs("#urlClientes").value = STATE.urls.clientes;
+      qs("#urlCalendario").value = STATE.urls.calendario;
+      qs("#urlUsuarios").value = STATE.urls.usuarios;
+      show(settingsModal);
+    });
+    qs("#btnCloseSettings").addEventListener("click", ()=> hide(settingsModal));
+    qs("#btnGuardarSettings").addEventListener("click", ()=>{
+      STATE.urls.clientes = qs("#urlClientes").value.trim();
+      STATE.urls.calendario = qs("#urlCalendario").value.trim();
+      STATE.urls.usuarios = qs("#urlUsuarios").value.trim();
+      localStorage.setItem("url_clientes", STATE.urls.clientes);
+      localStorage.setItem("url_calendario", STATE.urls.calendario);
+      localStorage.setItem("url_usuarios", STATE.urls.usuarios);
+      toast("✅ Ajustes guardados. Puedes probar la carga o recargar la página.");
+    });
+    qs("#btnProbarCarga").addEventListener("click", async ()=>{
+      try {
+        await loadAll();
+        toast("✅ Carga exitosa. Ya puedes iniciar sesión.");
+      } catch (e) {
+        console.error(e);
+        toast("❌ Error cargando CSV. Revisa las URLs.");
+      }
+    });
+
+    // ================== CSV LOADER ==================
+    function fetchCSV(url){
+      return new Promise((resolve, reject)=>{
+        if(!url || url.startsWith("REEMPLAZA_")) return resolve([]); // si no está configurado, devolvemos vacío
+        Papa.parse(url, {
+          header: true,
+          download: true,
+          skipEmptyLines: true,
+          complete: results => resolve(results.data),
+          error: err => reject(err)
+        });
+      });
+    }
+
+    async function loadAll(){
+      const [clientes, calendario, usuarios] = await Promise.all([
+        fetchCSV(STATE.urls.clientes),
+        fetchCSV(STATE.urls.calendario),
+        fetchCSV(STATE.urls.usuarios)
+      ]);
+      STATE.data.clientes = clientes.map(nrm);
+      STATE.data.calendario = calendario.map(nrm);
+      STATE.data.usuarios = usuarios.map(nrm);
+      buildJoined();
+      renderFilters();
+      renderTable();
+      renderMap();
+    }
+
+    // Normalizador de claves (conserva originales, pero agrega alias sin espacios/case para lectura robusta)
+    function nrm(row){
+      const out = {}; 
+      for (const k in row){
+        out[k] = row[k];
+        out[k.trim()] = row[k];
+      }
+      return out;
+    }
+
+    // ================== JOIN CLIENTES + CALENDARIO ==================
+    function buildJoined(){
+      const idxCal = {};
+      const hasDia = (r)=> (r[COL_DIA] !== undefined && r[COL_DIA] !== "") || (r["Día"] !== undefined && r["Día"] !== "");
+      STATE.data.calendario.forEach(r=>{
+        const key = String(r[KEY_JOIN]||"").trim();
+        if(!key) return;
+        if(!(key in idxCal)) idxCal[key] = r; // primera ocurrencia
+      });
+      STATE.joined = STATE.data.clientes.map(c=>{
+        const key = String(c[KEY_JOIN]||"").trim();
+        const m = idxCal[key];
+        const semana = m && m[COL_SEMANA] ? m[COL_SEMANA] : "Por asignar";
+        const dia = m && hasDia(m) ? (m[COL_DIA] || m["Día"]) : "Por asignar";
+        return {
+          cod: c[KEY_JOIN] || "",
+          nombre: c["NombreCliente"] || c["Cliente"] || c["RazonSocial"] || "",
+          lat: parseFloat(c["Latitud"] || c["latitud"] || c["LATITUD"] || ""),
+          lon: parseFloat(c["Longitud"] || c["longitud"] || c["LONGITUD"] || ""),
+          semana, dia
+        };
+      });
+    }
+
+    // ================== LOGIN ==================
+    qs("#loginForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const u = qs("#loginUser").value.trim().toLowerCase();
+      const p = qs("#loginPass").value;
+      try {
+        if (STATE.data.usuarios.length === 0){
+          // si aún no cargamos, intentamos ahora (permite entrar con solo Usuarios configurado)
+          await loadAll();
+        }
+        const row = STATE.data.usuarios.find(r => String(r["Usuario"]||r["NombreUsuario"]||r["Login"]||"").trim().toLowerCase() === u);
+        if(!row){ throw new Error("Usuario no encontrado"); }
+        const pass = String(row["Contrasena"]||row["Contraseña"]||row["Password"]||row["ContrasenaHash"]||"");
+        if(pass && (pass === p)){ onLogin({nombre: row["Usuario"]||row["NombreUsuario"]||u, rol: row["Rol"]||"Gestor"}); }
+        else if(!pass){
+          // si no hay campo de pass en la hoja, permitir demo
+          onLogin({nombre: row["Usuario"]||row["NombreUsuario"]||u, rol: row["Rol"]||"Gestor"});
+        } else {
+          throw new Error("Contraseña inválida");
+        }
+      } catch(err){
+        qs("#loginError").textContent = "⚠️ " + err.message;
+        qs("#loginError").classList.remove("hidden");
+      }
+    });
+
+    function onLogin(user){
+      STATE.user = user;
+      hide(qs("#loginSection"));
+      show(qs("#appSection"));
+      qs("#btnLogout").classList.remove("hidden");
+      if (STATE.joined.length === 0){
+        loadAll().catch(console.error);
+      }
+    }
+    qs("#btnLogout").addEventListener("click", ()=>{
+      STATE.user = null;
+      show(qs("#loginSection"));
+      hide(qs("#appSection"));
+      qs("#btnLogout").classList.add("hidden");
+    });
+
+    // ================== FILTROS / TABLA ==================
+    function renderFilters(){
+      const semanas = Array.from(new Set(STATE.joined.map(r=> String(r.semana||"")))).filter(Boolean).sort();
+      const dias = Array.from(new Set(STATE.joined.map(r=> String(r.dia||"")))).filter(Boolean).sort();
+      setOptions(qs("#fSemana"), ["", ...semanas]);
+      setOptions(qs("#fDia"), ["", ...dias]);
+      qs("#fSearch").value = "";
+    }
+    function setOptions(sel, arr){
+      sel.innerHTML = "";
+      arr.forEach(v=>{
+        const op = document.createElement("option");
+        op.value = v; op.textContent = v === "" ? "Todos" : v;
+        sel.appendChild(op);
+      });
+    }
+
+    function renderTable(){
+      const tbody = qs("#tablaClientes tbody");
+      tbody.innerHTML = "";
+      const fSem = qs("#fSemana").value;
+      const fDia = qs("#fDia").value.toLowerCase();
+      const q = qs("#fSearch").value.trim().toLowerCase();
+      let rows = STATE.joined.filter(r=>{
+        const okSem = !fSem || String(r.semana) === fSem;
+        const okDia = !fDia || String(r.dia).toLowerCase() === fDia;
+        const okQ = !q || (String(r.cod).toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q));
+        return okSem && okDia && okQ;
+      });
+      qs("#badgeTotal").textContent = rows.length;
+      rows.forEach(r=>{
+        const tr = document.createElement("tr");
+        tr.className = "border-b";
+        tr.innerHTML = `
+          <td class="px-4 py-2">${esc(r.cod)}</td>
+          <td class="px-4 py-2">${esc(r.nombre)}</td>
+          <td class="px-4 py-2">${esc(r.semana)}</td>
+          <td class="px-4 py-2">${esc(r.dia)}</td>
+          <td class="px-4 py-2">
+            <button class="btn bg-blue-600 text-white px-3 py-1 hover:bg-blue-700" data-cod="${esc(r.cod)}">Visitar</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function esc(s){ return (s===null||s===undefined) ? "" : String(s); }
+
+    qs("#fSemana").addEventListener("change", renderTable);
+    qs("#fDia").addEventListener("change", renderTable);
+    qs("#fSearch").addEventListener("input", renderTable);
+    qs("#btnLimpiar").addEventListener("click", ()=>{
+      qs("#fSemana").value=""; qs("#fDia").value=""; qs("#fSearch").value="";
+      renderTable();
+    });
+
+    qs("#btnExport").addEventListener("click", ()=>{
+      const headers = ["Cod Empresa","Cliente","Semana","Dia"];
+      const fSem = qs("#fSemana").value;
+      const fDia = qs("#fDia").value.toLowerCase();
+      const q = qs("#fSearch").value.trim().toLowerCase();
+      let rows = STATE.joined.filter(r=>{
+        const okSem = !fSem || String(r.semana) === fSem;
+        const okDia = !fDia || String(r.dia).toLowerCase() === fDia;
+        const okQ = !q || (String(r.cod).toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q));
+        return okSem && okDia && okQ;
+      }).map(r=>[r.cod, r.nombre, r.semana, r.dia]);
+      const csv = [headers.join(","), ...rows.map(r=>r.map(x=>`"${(x||"").toString().replace(/"/g,'""')}"`).join(","))].join("\n");
+      const blob = new Blob([csv], {type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "clientes_con_calendario.csv"; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ================== MAPA ==================
+    let map, markers = [];
+    function renderMap(){
+      if(!map){
+        map = L.map('map').setView([18.5, -69.9], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      }
+      markers.forEach(m=> m.remove());
+      markers = [];
+      const filtered = STATE.joined.filter(r=> !isNaN(r.lat) && !isNaN(r.lon));
+      filtered.forEach(r=>{
+        const m = L.marker([r.lat, r.lon]).addTo(map);
+        m.bindPopup(`<strong>${esc(r.nombre)}</strong><br><small>${esc(r.cod)}</small><br>Semana: ${esc(r.semana)}<br>Día: ${esc(r.dia)}<br><a href="https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lon}" target="_blank">Ir con Google Maps</a>`);
+        markers.push(m);
+      });
+      if(filtered.length){
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.25));
+      }
+    }
+
+    // ================== ACCIONES ==================
+    document.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-cod]");
+      if(!btn) return;
+      const cod = btn.getAttribute("data-cod");
+      const r = STATE.joined.find(x=>x.cod === cod);
+      if(!r) return;
+      if(!isNaN(r.lat) && !isNaN(r.lon)){
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lon}`,'_blank');
+      } else {
+        toast("No hay coordenadas registradas para este cliente.");
+      }
+    });
+
+    // ================== INIT ==================
+    window.addEventListener("load", ()=>{
+      // si hay URLs configuradas, intentamos precargar usuarios para habilitar login
+      // (la carga completa se hace al entrar o en 'Probar carga')
+      if(STATE.urls.usuarios && !STATE.urls.usuarios.startsWith("REEMPLAZA_")){
+        fetchCSV(STATE.urls.usuarios).then(u=> STATE.data.usuarios = u.map(nrm)).catch(()=>{});
+      }
+    });
+  </script>
+</body>
+</html>
