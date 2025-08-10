@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRM Llamadas — v7</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body { background: #f7fafc; }
+    .card { border-radius: 1rem; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .btn { border-radius: .75rem; }
+    .pill { border-radius:9999px; padding:.15rem .6rem; font-size:.75rem; }
+    #map { min-height: 420px; z-index: 1; }
+    .modal-bg { background: rgba(0,0,0,.55); z-index: 50; }
+    .view { display:none; }
+    .view.active { display:block; }
+    .navbtn.active { background:#111827; color:#fff; }
+    .leaflet-top, .leaflet-bottom { z-index: 2; }
+  </style>
+</head>
+<body class="text-gray-900">
+  <header class="bg-white shadow p-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <img src="logo_almacenes_karaka.png" alt="Logo" class="h-10 w-auto"/>
+      <h1 class="text-xl font-bold">CRM de Llamadas</h1>
+      <span class="text-xs pill bg-indigo-100 text-indigo-700">v7</span>
+    </div>
+    <nav class="flex items-center gap-2">
+      <button class="navbtn btn px-3 py-2 bg-gray-200 hover:bg-gray-300" data-view="home"><i class="fa fa-map"></i> Mapa</button>
+      <button class="navbtn btn px-3 py-2 bg-gray-200 hover:bg-gray-300" data-view="llamada"><i class="fa fa-phone"></i> Registrar llamada</button>
+      <button class="navbtn btn px-3 py-2 bg-gray-200 hover:bg-gray-300" data-view="asignar"><i class="fa fa-calendar-week"></i> Asignar semana/día</button>
+      <button class="navbtn btn px-3 py-2 bg-gray-200 hover:bg-gray-300" data-view="reporte"><i class="fa fa-chart-bar"></i> Reporte</button>
+      <button id="btnOpenSettings" class="btn bg-gray-800 text-white px-3 py-2 hover:bg-gray-700"><i class="fa fa-gear"></i> Ajustes</button>
+      <button id="btnLogout" class="btn bg-red-600 text-white px-3 py-2 hover:bg-red-700 hidden"><i class="fa fa-right-from-bracket"></i> Salir</button>
+    </nav>
+  </header>
+
+  <section id="loginSection" class="max-w-md mx-auto mt-10 bg-white p-6 card">
+    <h2 class="text-lg font-semibold mb-4"><i class="fa fa-lock"></i> Acceso</h2>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm">Usuario</label>
+        <input type="text" id="loginUser" class="w-full p-2 border rounded" required/>
+      </div>
+      <div>
+        <label class="block text-sm">Contraseña</label>
+        <input type="password" id="loginPass" class="w-full p-2 border rounded" required/>
+      </div>
+      <button class="btn bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 w-full">Entrar</button>
+      <p class="text-xs text-gray-500">* Validación local contra la hoja <em>Usuarios</em> (CSV publicado).</p>
+    </form>
+    <div id="loginError" class="mt-3 text-sm text-red-600 hidden"></div>
+  </section>
+
+  <main id="appSection" class="view">
+    <section id="view-home" class="view active">
+      <section class="max-w-7xl mx-auto mt-6 px-4">
+        <div class="bg-white p-4 card">
+          <div id="map" class="w-full h-96 rounded"></div>
+          <p class="text-xs text-gray-500 mt-2">* Centrado fijo en República Dominicana.</p>
+        </div>
+      </section>
+
+      <section class="max-w-7xl mx-auto mt-6 px-4">
+        <div class="bg-white p-4 card">
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <div>
+              <label class="block text-sm">Semana</label>
+              <select id="fSemana" class="w-full p-2 border rounded"></select>
+            </div>
+            <div>
+              <label class="block text-sm">Día</label>
+              <select id="fDia" class="w-full p-2 border rounded"></select>
+            </div>
+            <div>
+              <label class="block text-sm">Vendedor</label>
+              <select id="fVendedor" class="w-full p-2 border rounded"></select>
+            </div>
+            <div>
+              <label class="block text-sm">gestor_servicio</label>
+              <select id="fGestor" class="w-full p-2 border rounded"></select>
+            </div>
+            <div>
+              <label class="block text-sm">Empresa</label>
+              <select id="fEmpresa" class="w-full p-2 border rounded"></select>
+            </div>
+            <div class="md:col-span-3">
+              <label class="block text-sm">Buscar cliente</label>
+              <input id="fSearch" type="text" class="w-full p-2 border rounded" placeholder="Nombre o Cod Empresa">
+            </div>
+            <div class="flex items-end gap-2">
+              <button id="btnLimpiar" class="btn bg-gray-200 px-4 py-2 hover:bg-gray-300"><i class="fa fa-eraser"></i> Limpiar</button>
+              <button id="btnExport" class="btn bg-green-600 text-white px-4 py-2 hover:bg-green-700"><i class="fa fa-file-export"></i> Exportar CSV</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="max-w-7xl mx-auto mt-6 px-4 mb-10">
+        <div class="bg-white p-4 card overflow-x-auto">
+          <h3 class="text-lg font-semibold mb-3">Lista de clientes &nbsp;<span class="text-xs pill bg-blue-100 text-blue-700" id="badgeTotal">0</span></h3>
+          <table id="tablaClientes" class="min-w-full text-sm text-left text-gray-700 border">
+            <thead class="bg-gray-50 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-2">Cod Empresa</th>
+                <th class="px-4 py-2">Cliente</th>
+                <th class="px-4 py-2">Semana</th>
+                <th class="px-4 py-2">Día</th>
+                <th class="px-4 py-2">Vendedor</th>
+                <th class="px-4 py-2">gestor_servicio</th>
+                <th class="px-4 py-2">Empresa</th>
+                <th class="px-4 py-2">Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-llamada" class="view">
+      <div class="max-w-3xl mx-auto mt-6 px-4">
+        <div class="bg-white p-6 card">
+          <h3 class="text-lg font-semibold mb-4"><i class="fa fa-phone"></i> Registrar llamada</h3>
+          <form id="formLlamada" class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm">Cliente</label>
+                <input list="dl_clientes" id="ll_cliente" class="w-full p-2 border rounded" required>
+                <datalist id="dl_clientes"></datalist>
+              </div>
+              <div>
+                <label class="block text-sm">Cod Empresa</label>
+                <input id="ll_cod" class="w-full p-2 border rounded" readonly>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-sm">Vendedor</label>
+                <input id="ll_vendedor" class="w-full p-2 border rounded" readonly>
+              </div>
+              <div>
+                <label class="block text-sm">gestor_servicio</label>
+                <input id="ll_gestor" class="w-full p-2 border rounded" readonly>
+              </div>
+              <div>
+                <label class="block text-sm">Fecha/Hora</label>
+                <input id="ll_fh" class="w-full p-2 border rounded" readonly>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm">Resultado</label>
+                <select id="ll_resultado" class="w-full p-2 border rounded">
+                  <option>Exitosa</option>
+                  <option>Pendiente</option>
+                  <option>No contesta</option>
+                  <option>Cliente no disponible</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm">Duración (seg.)</label>
+                <input type="number" id="ll_duracion" class="w-full p-2 border rounded" min="0" value="0">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm">Observaciones</label>
+              <textarea id="ll_obs" class="w-full p-2 border rounded"></textarea>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-sm">Tipo de cita</label>
+                <select id="ll_cita_tipo" class="w-full p-2 border rounded">
+                  <option value="">Sin cita</option>
+                  <option>Showroom</option>
+                  <option>Visita a cliente</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm">Fecha cita</label>
+                <input type="date" id="ll_cita_fecha" class="w-full p-2 border rounded">
+              </div>
+              <div>
+                <label class="block text-sm">Hora cita</label>
+                <input type="time" id="ll_cita_hora" class="w-full p-2 border rounded">
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+              <button class="btn bg-gray-200 px-4 py-2 hover:bg-gray-300" type="button" data-go="home">Cancelar</button>
+              <button class="btn bg-blue-600 text-white px-4 py-2 hover:bg-blue-700" type="submit">Guardar llamada</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-asignar" class="view">
+      <div class="max-w-3xl mx-auto mt-6 px-4">
+        <div class="bg-white p-6 card">
+          <h3 class="text-lg font-semibold mb-4"><i class="fa fa-calendar-week"></i> Asignar semana y día</h3>
+          <form id="formAsignar" class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm">Cliente</label>
+                <input list="dl_clientes2" id="asig_cliente" class="w-full p-2 border rounded" required>
+                <datalist id="dl_clientes2"></datalist>
+              </div>
+              <div>
+                <label class="block text-sm">Cod Empresa</label>
+                <input id="asig_cod" class="w-full p-2 border rounded" readonly>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm">Semana</label>
+                <input type="number" id="asig_semana" class="w-full p-2 border rounded" min="1" max="53" required>
+              </div>
+              <div>
+                <label class="block text-sm">Día</label>
+                <select id="asig_dia" class="w-full p-2 border rounded">
+                  <option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option><option>Domingo</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+              <button class="btn bg-gray-200 px-4 py-2 hover:bg-gray-300" type="button" data-go="home">Cancelar</button>
+              <button class="btn bg-yellow-600 text-white px-4 py-2 hover:bg-yellow-700" type="submit">Aplicar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-reporte" class="view">
+      <div class="max-w-6xl mx-auto mt-6 px-4">
+        <div class="bg-white p-6 card">
+          <h3 class="text-lg font-semibold mb-3"><i class="fa fa-chart-bar"></i> Resumen de llamadas por gestor</h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div><label class="block text-sm">Desde</label><input type="date" id="rep_desde" class="w-full p-2 border rounded"></div>
+            <div><label class="block text-sm">Hasta</label><input type="date" id="rep_hasta" class="w-full p-2 border rounded"></div>
+            <div><label class="block text-sm">Gestor</label><select id="rep_gestor" class="w-full p-2 border rounded"><option value="">Todos</option></select></div>
+            <div class="flex items-end"><button id="rep_aplicar" class="btn bg-gray-800 text-white px-4 py-2 hover:bg-black">Aplicar</button></div>
+          </div>
+          <table id="tablaReporte" class="min-w-full text-sm text-left text-gray-700 border">
+            <thead class="bg-gray-50 text-xs uppercase">
+              <tr><th class="px-4 py-2">Gestor</th><th class="px-4 py-2">Total llamadas</th><th class="px-4 py-2">Exitosa</th><th class="px-4 py-2">Pendiente/No contesta</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="settingsModal" class="fixed inset-0 modal-bg flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold"><i class="fa fa-gear"></i> Ajustes</h3>
+        <button id="btnCloseSettings" class="text-gray-600 hover:text-black"><i class="fa fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">Las fuentes CSV ya vienen configuradas.</p>
+      <label class="block text-sm">URL CSV — Clientes</label>
+      <input id="urlClientes" class="w-full p-2 border rounded mb-3" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=1016315198&single=true&output=csv">
+      <label class="block text-sm">URL CSV — Calendario</label>
+      <input id="urlCalendario" class="w-full p-2 border rounded mb-3" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=1395226434&single=true&output=csv">
+      <label class="block text-sm">URL CSV — Usuarios</label>
+      <input id="urlUsuarios" class="w-full p-2 border rounded mb-6" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=223681507&single=true&output=csv">
+      <div class="flex items-center justify-end gap-2">
+        <button id="btnGuardarSettings" class="btn bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const KEY_JOIN = "Cod Empresa";
+    function pickSemana(row) { 
+      for (const k in row) { if (k && k.toLowerCase().includes("semana")) return row[k]; } 
+      return ""; 
+    }
+    function pickDia(row) { 
+      for (const k in row) { 
+        const kk = k.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+        if (kk.includes("dia")) return row[k]; 
+      } 
+      return ""; 
+    }
+
+    let STATE = { urls: { clientes: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=1016315198&single=true&output=csv", calendario: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=1395226434&single=true&output=csv", usuarios: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGjr-XdLSamHpGQfoORmLfntJbLd-UbFpD7NdMM14x2JdMhxOYHTWQBlhYCMDu0ZTy3AYS-1Y3q91Y/pub?gid=223681507&single=true&output=csv" },
+      user: null,
+      data: { clientes: [], calendario: [], usuarios: [] },
+      joined: [],
+      llamadas: []
+    };
+
+    const qs = s => document.querySelector(s);
+    const qsa = s => Array.from(document.querySelectorAll(s));
+    function show(el){ el.classList.remove("hidden"); }
+    function hide(el){ el.classList.add("hidden"); }
+    function toast(msg){ alert(msg); }
+    function esc(s){ return (s===null||s===undefined) ? "" : String(s); }
+    function go(view) { qsa('.view').forEach(v=>v.classList.remove('active')); qs('#view-'+view).classList.add('active'); qsa('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.view===view)); window.scrollTo({top:0,behavior:'smooth'}); }
+
+    qsa(".navbtn").forEach(b=> b.addEventListener("click", ()=> go(b.dataset.view)));
+    qsa("[data-go]").forEach(b=> b.addEventListener("click", ()=> go(b.getAttribute("data-go"))));
+
+    qs("#btnOpenSettings").addEventListener("click", ()=> show(qs("#settingsModal")));
+    qs("#btnCloseSettings").addEventListener("click", ()=> hide(qs("#settingsModal")));
+    qs("#btnGuardarSettings").addEventListener("click", ()=>{ 
+      STATE.urls.clientes = qs("#urlClientes").value.trim();
+      STATE.urls.calendario = qs("#urlCalendario").value.trim();
+      STATE.urls.usuarios = qs("#urlUsuarios").value.trim();
+      toast("✅ Ajustes guardados (efecto al refrescar/cargar).");
+    });
+
+    function fetchCSV(url){ return new Promise((resolve, reject)=>{ Papa.parse(url, { header:true, download:true, skipEmptyLines:true,
+      complete: res=> resolve(res.data), error: err=> reject(err) }); }); }
+
+    async function loadAll(){
+      const [clientes, calendario, usuarios] = await Promise.all([
+        fetchCSV(STATE.urls.clientes), fetchCSV(STATE.urls.calendario), fetchCSV(STATE.urls.usuarios)
+      ]);
+      STATE.data.clientes = clientes.map(nrm);
+      STATE.data.calendario = calendario.map(nrm);
+      STATE.data.usuarios = usuarios.map(nrm);
+      buildJoined();
+      renderFilters();
+      renderAll();
+      fillDatalistsAndReport();
+    }
+
+    function nrm(row){
+      const out = {}; 
+      for (const k in row){ out[k] = row[k]; out[k.trim()] = row[k]; }
+      return out;
+    }
+
+    function normKey(v){ return String(v || "").trim().toLowerCase(); }
+    function buildJoined(){
+      const idxCal = {};
+      STATE.data.calendario.forEach(r=>{
+        const key = normKey(r[KEY_JOIN]);
+        if(!key) return;
+        if(!(key in idxCal)) idxCal[key] = r;
+      });
+      STATE.joined = STATE.data.clientes.map(c=>{
+        const key = normKey(c[KEY_JOIN]);
+        const m = idxCal[key];
+        const semana = m ? pickSemana(m) : "";
+        const dia = m ? pickDia(m) : "";
+        return {
+          cod: c[KEY_JOIN] || "",
+          nombre: c["NombreCliente"] || c["Cliente"] || c["RazonSocial"] || "",
+          vendedor: c["Vendedor"] || c["vendedor"] || c["VENDEDOR"] || "",
+          gestor: c["gestor_servicio"] || c["Gestor"] || c["GESTOR_SERVICIO"] || "",
+          empresa: c["Empresa"] || c["empresa"] || c["EMPRESA"] || "",
+          lat: parseFloat(c["Latitud"] || c["latitud"] || c["LATITUD"] || ""),
+          lon: parseFloat(c["Longitud"] || c["longitud"] || c["LONGITUD"] || ""),
+          semana: semana || "Por asignar",
+          dia: dia || "Por asignar"
+        };
+      });
+    }
+
+    qs("#loginForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const u = qs("#loginUser").value.trim().toLowerCase();
+      const p = qs("#loginPass").value;
+      try {
+        if (STATE.data.usuarios.length === 0){ await loadAll(); }
+        const row = STATE.data.usuarios.find(r => String(r["Usuario"]||r["NombreUsuario"]||r["Login"]||r["gestor_servicio"]||"").trim().toLowerCase() === u);
+        if(!row) throw new Error("Usuario no encontrado");
+        const pass = String(row["Contrasena"]||row["Contraseña"]||row["Password"]||row["ContrasenaHash"]||"");
+        if(pass && (pass === p)) onLogin({nombre: row["Usuario"]||row["NombreUsuario"]||row["gestor_servicio"]||u, rol: row["Rol"]||row["Permiso"]||"Gestor"});
+        else if(!pass) onLogin({nombre: row["Usuario"]||row["NombreUsuario"]||row["gestor_servicio"]||u, rol: row["Rol"]||row["Permiso"]||"Gestor"});
+        else throw new Error("Contraseña inválida");
+      } catch(err){
+        qs("#loginError").textContent = "⚠️ " + err.message;
+        qs("#loginError").classList.remove("hidden");
+      }
+    });
+
+    function onLogin(user){
+      STATE.user = user; hide(qs("#loginSection")); qs("#appSection").classList.add("active");
+      go("home");
+      if (!map) initMap();
+      if (STATE.joined.length === 0){ loadAll().catch(console.error); }
+    }
+
+    let map, markers=[];
+    function initMap(){
+      map = L.map('map', { zoomControl: true }).setView([18.7357, -70.1627], 8);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    }
+    function renderMap(filtered){
+      markers.forEach(m=> m.remove()); markers=[];
+      filtered.filter(r=> !isNaN(r.lat) && !isNaN(r.lon)).forEach(r=>{
+        const m = L.marker([r.lat, r.lon]).addTo(map);
+        m.bindPopup(`<strong>${esc(r.nombre)}</strong><br><small>${esc(r.cod)}</small><br>Semana: ${esc(r.semana)}<br>Día: ${esc(r.dia)}`);
+        markers.push(m);
+      });
+      map.setView([18.7357, -70.1627], 8);
+    }
+
+    function setOptions(sel, arr){ sel.innerHTML=""; arr.forEach(v=>{ const op=document.createElement("option"); op.value=v; op.textContent= v===""?"Todos":v; sel.appendChild(op); }); }
+    function renderFilters(){
+      const semanas = Array.from(new Set(STATE.joined.map(r=> String(r.semana||"")))).filter(Boolean).sort();
+      const dias = Array.from(new Set(STATE.joined.map(r=> String(r.dia||"")))).filter(Boolean).sort();
+      const vendedores = Array.from(new Set(STATE.joined.map(r=> String(r.vendedor||"")))).filter(Boolean).sort();
+      const gestores = Array.from(new Set(STATE.joined.map(r=> String(r.gestor||"")))).filter(Boolean).sort();
+      const empresas = Array.from(new Set(STATE.joined.map(r=> String(r.empresa||"")))).filter(Boolean).sort();
+      setOptions(qs("#fSemana"), ["", ...semanas]);
+      setOptions(qs("#fDia"), ["", ...dias]);
+      setOptions(qs("#fVendedor"), ["", ...vendedores]);
+      setOptions(qs("#fGestor"), ["", ...gestores]);
+      setOptions(qs("#fEmpresa"), ["", ...empresas]);
+      qs("#fSearch").value = "";
+      ["#fSemana","#fDia","#fVendedor","#fGestor","#fEmpresa","#fSearch"].forEach(id=> qs(id).addEventListener(id==="#fSearch"?"input":"change", renderAll));
+    }
+
+    function currentFiltered(){
+      const fSem = qs("#fSemana").value;
+      const fDia = qs("#fDia").value.toLowerCase();
+      const fVen = qs("#fVendedor").value.toLowerCase();
+      const fGes = qs("#fGestor").value.toLowerCase();
+      const fEmp = qs("#fEmpresa").value.toLowerCase();
+      const q = qs("#fSearch").value.trim().toLowerCase();
+      return STATE.joined.filter(r=>{
+        const okSem = !fSem || String(r.semana) === fSem;
+        const okDia = !fDia || String(r.dia).toLowerCase() === fDia;
+        const okVen = !fVen || String(r.vendedor).toLowerCase() === fVen;
+        const okGes = !fGes || String(r.gestor).toLowerCase() === fGes;
+        const okEmp = !fEmp || String(r.empresa).toLowerCase() === fEmp;
+        const okQ = !q || (String(r.cod).toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q));
+        return okSem && okDia && okVen && okGes && okEmp && okQ;
+      });
+    }
+
+    function renderTable(filtered){
+      const tbody = qs("#tablaClientes tbody"); tbody.innerHTML="";
+      qs("#badgeTotal").textContent = filtered.length;
+      filtered.forEach(r=>{
+        const tr = document.createElement("tr"); tr.className = "border-b";
+        tr.innerHTML = `
+          <td class="px-4 py-2">${esc(r.cod)}</td>
+          <td class="px-4 py-2">${esc(r.nombre)}</td>
+          <td class="px-4 py-2">${esc(r.semana)}</td>
+          <td class="px-4 py-2">${esc(r.dia)}</td>
+          <td class="px-4 py-2">${esc(r.vendedor)}</td>
+          <td class="px-4 py-2">${esc(r.gestor)}</td>
+          <td class="px-4 py-2">${esc(r.empresa)}</td>
+          <td class="px-4 py-2"><button class="btn bg-blue-600 text-white px-3 py-1 hover:bg-blue-700" data-open-ll="${esc(r.cod)}">Gestionar</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAll(){
+      const filtered = currentFiltered();
+      renderTable(filtered);
+      renderMap(filtered);
+    }
+
+    qs("#btnExport").addEventListener("click", ()=>{
+      const headers = ["Cod Empresa","Cliente","Semana","Dia","Vendedor","gestor_servicio","Empresa"];
+      const rows = currentFiltered().map(r=>[r.cod,r.nombre,r.semana,r.dia,r.vendedor,r.gestor,r.empresa]);
+      const csv = [headers.join(","), ...rows.map(r=>r.map(x=>`"${(x||"").toString().replace(/"/g,'""')}"`).join(","))].join("\n");
+      const blob = new Blob([csv], {type:"text/csv"});
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = "clientes_filtrados.csv"; a.click(); URL.revokeObjectURL(url);
+    });
+
+    function fillDatalistsAndReport(){
+      const dl1 = qs("#dl_clientes"), dl2 = qs("#dl_clientes2");
+      dl1.innerHTML=""; dl2.innerHTML="";
+      STATE.joined.forEach(r=>{ const opt=document.createElement("option"); opt.value = r.nombre + " — " + r.cod; dl1.appendChild(opt); dl2.appendChild(opt.cloneNode(true)); });
+      const repSel = qs("#rep_gestor"); repSel.innerHTML = '<option value="">Todos</option>';
+      Array.from(new Set(STATE.joined.map(r=>r.gestor).filter(Boolean))).sort().forEach(g=>{ const op=document.createElement("option"); op.value=g; op.textContent=g; repSel.appendChild(op); });
+    }
+
+    document.addEventListener("click", (e)=>{
+      const btn = e.target.closest("[data-open-ll]");
+      if(btn){ const cod = btn.getAttribute("data-open-ll"); const r = STATE.joined.find(x=>x.cod===cod); if(r){ go("llamada"); qs("#ll_cliente").value = r.nombre + " — " + r.cod; qs("#ll_cod").value = r.cod; qs("#ll_vendedor").value = r.vendedor; qs("#ll_gestor").value = r.gestor; setNow(); } }
+    });
+
+    function setNow(){ qs("#ll_fh").value = new Date().toLocaleString(); }
+    qs("#ll_cliente").addEventListener("change", ()=>{
+      const t = qs("#ll_cliente").value; const cod = t.split("—").pop().trim();
+      const r = STATE.joined.find(x=>x.cod===cod); if(r){ qs("#ll_cod").value = r.cod; qs("#ll_vendedor").value = r.vendedor; qs("#ll_gestor").value = r.gestor; }
+    });
+    qs("#formLlamada").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const payload = { 
+        FechaHora: new Date().toISOString(),
+        Cliente: qs("#ll_cliente").value,
+        CodEmpresa: qs("#ll_cod").value,
+        Vendedor: qs("#ll_vendedor").value,
+        Gestor: qs("#ll_gestor").value,
+        Resultado: qs("#ll_resultado").value,
+        Duracion: Number(qs("#ll_duracion").value||0),
+        Observaciones: qs("#ll_obs").value,
+        CitaTipo: qs("#ll_cita_tipo").value, CitaFecha: qs("#ll_cita_fecha").value, CitaHora: qs("#ll_cita_hora").value
+      };
+      STATE.llamadas.push(payload);
+      toast("✅ Llamada guardada (local). Se incluirá en el reporte.");
+      go("home");
+      renderReporte();
+    });
+
+    qs("#asig_cliente").addEventListener("change", ()=>{
+      const t = qs("#asig_cliente").value; const cod = t.split("—").pop().trim();
+      qs("#asig_cod").value = cod;
+    });
+    qs("#formAsignar").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const cod = qs("#asig_cod").value; const semana = qs("#asig_semana").value; const dia = qs("#asig_dia").value;
+      const idx = STATE.joined.findIndex(r=> r.cod===cod);
+      if(idx>=0){ STATE.joined[idx].semana = semana; STATE.joined[idx].dia = dia; toast("✅ Asignación aplicada."); go("home"); renderAll(); }
+    });
+
+    function renderReporte(){
+      const desde = qs("#rep_desde").value ? new Date(qs("#rep_desde").value) : null;
+      const hasta = qs("#rep_hasta").value ? new Date(qs("#rep_hasta").value) : null;
+      const ges = qs("#rep_gestor").value;
+      const rows = STATE.llamadas.filter(r=>{
+        const fh = new Date(r.FechaHora);
+        const okDesde = !desde || fh >= desde;
+        const okHasta = !hasta || fh <= new Date(hasta.getTime()+24*3600*1000-1);
+        const okGes = !ges || r.Gestor===ges;
+        return okDesde && okHasta && okGes;
+      });
+      const byGestor = {};
+      rows.forEach(r=>{
+        const g = r.Gestor || "Sin gestor";
+        if(!byGestor[g]) byGestor[g] = { total:0, exitosa:0, pendiente:0 };
+        byGestor[g].total++;
+        if(String(r.Resultado).toLowerCase()==="exitosa") byGestor[g].exitosa++; else byGestor[g].pendiente++;
+      });
+      const tbody = qs("#tablaReporte tbody"); tbody.innerHTML="";
+      Object.keys(byGestor).sort().forEach(g=>{ const tr=document.createElement("tr"); tr.className="border-b"; const v=byGestor[g]; tr.innerHTML=`<td class='px-4 py-2'>${g}</td><td class='px-4 py-2'>${v.total}</td><td class='px-4 py-2'>${v.exitosa}</td><td class='px-4 py-2'>${v.pendiente}</td>`; tbody.appendChild(tr); });
+    }
+    qs("#rep_aplicar").addEventListener("click", renderReporte);
+
+    window.addEventListener("load", ()=>{
+      Papa.parse(STATE.urls.usuarios, { header:true, download:true, skipEmptyLines:true, complete: res=> { STATE.data.usuarios = res.data.map(nrm); } });
+      setNow();
+    });
+  </script>
+</body>
+</html>
