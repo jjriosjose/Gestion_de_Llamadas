@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte de Citas</title>
+<style>
+:root{ --bg:#0b1220; --card:#131c2b; --muted:#90a0b7; --text:#e8eef9; --chip:#1f2a40; --primary:#2dd4bf;}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#0b1220 0%,#0e1626 100%);color:var(--text)}
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.card{background:rgba(19,28,43,.9);border:1px solid #22304a;border-radius:16px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+h2{margin:0 0 10px} .muted{color:var(--muted);font-size:12px}
+.grid{display:grid;gap:8px} .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+select,input[type="date"]{width:100%;padding:10px;border-radius:10px;border:1px solid #314463;background:#0f1726;color:var(--text);outline:none}
+.btn{border:1px solid #28405f;background:#0f1726;color:var(--text);padding:8px 10px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:600;font-size:12px}
+.btn:hover{transform:translateY(-1px)} .btn-primary{background:linear-gradient(135deg,#1aa27f,#2dd4bf);border:0;color:#072018}
+.table{width:100%;border-collapse:collapse;font-size:12px;border:1px solid #22304a;border-radius:12px;overflow:hidden}
+.table th,.table td{padding:8px 10px;border-bottom:1px solid #22304a} .table th{color:#9fb1cc;background:#0f182a;position:sticky;top:0;z-index:1}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{padding:2px 8px;font-size:11px;border-radius:999px;background:var(--chip);color:#a7b3c8;border:1px solid #2a3a59}
+.notice{background:#1a2438;border:1px dashed #2b3b59;padding:8px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>📅 Reporte de Citas</h2>
+    <div class="muted">Muestra todas las citas guardadas en este navegador (localStorage &ldquo;llamadas_records&rdquo;). Puedes filtrar y exportar a CSV.</div>
+    <div class="grid grid-4" style="margin-top:10px">
+      <div>
+        <label>Desde</label>
+        <input type="date" id="fDesde">
+      </div>
+      <div>
+        <label>Hasta</label>
+        <input type="date" id="fHasta">
+      </div>
+      <div>
+        <label>Vendedor</label>
+        <select id="fVendedor"><option value="">(todos)</option></select>
+      </div>
+      <div>
+        <label>Gestor</label>
+        <select id="fGestor"><option value="">(todos)</option></select>
+      </div>
+      <div>
+        <label>Estatus visita</label>
+        <select id="fEstatus">
+          <option value="">(todos)</option>
+          <option>programada</option><option>asistió</option><option>no asistió</option>
+          <option>reprogramada</option><option>cancelada</option>
+        </select>
+      </div>
+      <div>
+        <label>Tipo de cita</label>
+        <select id="fTipo"><option value="">(todas)</option></select>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn" id="btnExport">⬇ Exportar CSV</button>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <span class="chip">Citas: <span id="statCount">0</span></span>
+      </div>
+    </div>
+    <div id="notice" class="notice" style="margin-top:8px;display:none"></div>
+    <div style="margin-top:10px;max-height:65vh;overflow:auto;border-radius:10px">
+      <table class="table" id="tbl">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Hora</th><th>Estatus</th><th>Tipo</th>
+            <th>Cliente</th><th>Cod</th><th>Vendedor</th><th>Gestor</th>
+            <th>Obs</th><th>Creada</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function csvEscape(v){ if(v==null) return ''; const s=String(v); return (s.includes(',')||s.includes('"')||s.includes('\\n'))?('"'+s.replace(/"/g,'""')+'"'):s; }
+function norm(v){ return (v??'').toString().trim().toLowerCase(); }
+
+function loadAll(){
+  let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(e){ local=[]; }
+  return local.map(r=>{ if(!r.__id) r.__id = (r.cod_empresa||'')+'-'+(r.fecha_hora||'')+'-'+Math.random().toString(36).slice(2,8); return r; });
+}
+function unique(arr){ return Array.from(new Set(arr.filter(Boolean))).sort((a,b)=> String(a).localeCompare(String(b),'es',{numeric:true})); }
+
+function buildFiltersOptions(data){
+  const vendSel=document.getElementById('fVendedor');
+  const gesSel=document.getElementById('fGestor');
+  const tipoSel=document.getElementById('fTipo');
+  const vends=unique(data.map(x=>x.vendedor));
+  const gests=unique(data.map(x=>x.gestor_servicio));
+  const tipos=unique(data.map(x=>x.cita_tipo));
+  vendSel.innerHTML = '<option value="">(todos)</option>'+vends.map(v=>`<option>${v}</option>`).join('');
+  gesSel.innerHTML = '<option value="">(todos)</option>'+gests.map(v=>`<option>${v}</option>`).join('');
+  tipoSel.innerHTML = '<option value="">(todas)</option>'+tipos.map(v=>`<option>${v}</option>`).join('');
+}
+
+function getFilters(){
+  return {
+    desde: document.getElementById('fDesde').value,
+    hasta: document.getElementById('fHasta').value,
+    vendedor: document.getElementById('fVendedor').value,
+    gestor: document.getElementById('fGestor').value,
+    estatus: document.getElementById('fEstatus').value,
+    tipo: document.getElementById('fTipo').value
+  };
+}
+
+let DATA = [];
+function load(){
+  const raw = loadAll().filter(r => r.cita_tipo && r.cita_tipo !== 'sin_cita');
+  DATA = raw;
+  buildFiltersOptions(raw);
+  render();
+  document.getElementById('notice').style.display = raw.length? 'none':'block';
+  document.getElementById('notice').textContent = raw.length? '' : 'No se encontraron citas. Registra llamadas con cita en tu app y vuelve a abrir este reporte en este mismo navegador.';
+}
+
+function render(){
+  const {desde,hasta,vendedor,gestor,estatus,tipo} = getFilters();
+  const ds = desde? new Date(desde+'T00:00:00') : null;
+  const hs = hasta? new Date(hasta+'T23:59:59') : null;
+  const rows = DATA.filter(r=>{
+    const f = r.cita_fecha ? new Date(r.cita_fecha+'T'+(r.cita_hora || '00:00')) : null;
+    if(ds && f && f<ds) return false;
+    if(hs && f && f>hs) return false;
+    if(vendedor && r.vendedor !== vendedor) return false;
+    if(gestor && r.gestor_servicio !== gestor) return false;
+    if(estatus && (r.estatus_visita||'programada') !== estatus) return false;
+    if(tipo && r.cita_tipo !== tipo) return false;
+    return true;
+  }).sort((a,b)=> String(a.cita_fecha||'').localeCompare(String(b.cita_fecha||'')) || String(a.cita_hora||'').localeCompare(String(b.cita_hora||'')) );
+
+  document.getElementById('statCount').textContent = rows.length;
+  const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td>'+ (r.cita_fecha||'') +'</td>'+
+                   '<td>'+ (r.cita_hora||'') +'</td>'+
+                   '<td>'+ (r.estatus_visita||'programada') +'</td>'+
+                   '<td>'+ (r.cita_tipo||'') +'</td>'+
+                   '<td>'+ (r.cliente||'') +'</td>'+
+                   '<td>'+ (r.cod_empresa||'') +'</td>'+
+                   '<td>'+ (r.vendedor||'') +'</td>'+
+                   '<td>'+ (r.gestor_servicio||'') +'</td>'+
+                   '<td>'+ (r.observaciones||'') +'</td>'+
+                   '<td>'+ (r.fecha_hora||'') +'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+function exportCSV(){
+  const tb=document.querySelector('#tbl tbody');
+  const headers=['Fecha','Hora','Estatus','Tipo','Cliente','Cod','Vendedor','Gestor','Obs','Creada'];
+  const rows=[...tb.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>td.textContent));
+  const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); a.download='reporte_citas.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+['fDesde','fHasta','fVendedor','fGestor','fEstatus','fTipo'].forEach(id=>{
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const el=document.getElementById(id); if(el) el.addEventListener('change', render);
+  });
+});
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('btnExport').addEventListener('click', exportCSV);
+  load();
+});
+</script>
+</body>
+</html>
