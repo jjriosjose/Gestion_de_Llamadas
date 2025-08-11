@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gestión de Llamadas - LLAMADAS v7.5.6</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <title>Gestión de Llamadas - LLAMADAS v7.5.6 (No Duplicados)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
     :root{ --bg:#0b1220; --card:#131c2b; --muted:#90a0b7; --text:#e8eef9; --primary:#2dd4bf; --danger:#ef4444; --chip:#1f2a40;}
     *{box-sizing:border-box;} body{ margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:linear-gradient(180deg,#0b1220 0%,#0e1626 100%); color:var(--text);}
@@ -33,7 +33,7 @@
     details > summary{ cursor:pointer; color:#b7c7e3; }
     .no-scroll{ overflow:hidden; }
     .modal .card{ max-height:90vh; overflow:auto; }
-    /* Agenda styles */
+
     .kanban{ display:flex; gap:12px; }
     .kcol{ flex:1 1 0; background:#0e1626; border:1px solid #22304a; border-radius:12px; padding:10px; min-height:320px; }
     .kcol h4{ margin:0 0 8px; }
@@ -44,9 +44,10 @@
 </head>
 <body>
   <div class="container">
-    <div class="app-title"><img alt="Almacenes Karaka" src="data:image/png;base64,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" style="height:28px; width:auto; object-fit:contain;"/> 
+    <div class="app-title">
       <h2 style="margin:0;">Gestión de Llamadas</h2>
       <span class="badge">LLAMADAS v7.5.6</span>
+      <span class="badge">No Dups</span>
       <span class="badge">Single-File</span>
     </div>
 
@@ -100,7 +101,7 @@
           </div>
           <div style="margin-top:8px;" class="grid grid-2">
             <div><label>Cliente</label><select id="fCliente"><option value="">-- Seleccione --</option></select></div>
-            <div class="toolbar hidden" id="legend"></div> <!-- hidden by default -->
+            <div class="toolbar hidden" id="legend"></div>
           </div>
         </div>
 
@@ -119,6 +120,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </section>
   </div>
@@ -199,7 +201,7 @@
         <legend class="muted">Cita</legend>
         <div class="grid grid-3">
           <div><label>Tipo</label><select id="callCitaTipo">
-            <option value="sin_cita">(sin cita)</option><option value="cita_showroom">Cita Showroom</option><option value="no_cita">No cita</option>
+            <option value="sin_cita">(sin_cita)</option><option value="cita_showroom">Cita Showroom</option><option value="no_cita">No cita</option>
           </select></div>
           <div><label>Fecha</label><input id="callCitaFecha" type="date" /></div>
           <div><label>Hora</label><input id="callCitaHora" type="time" /></div>
@@ -242,7 +244,7 @@
     </div>
   </div>
 
-  <!-- Modal Agenda -->
+  <!-- Modal Agenda (placeholder funcional básico) -->
   <div id="modalAgenda" class="modal hidden" aria-modal="true" role="dialog">
     <div class="card" style="width:min(1200px,96vw);">
       <h3 class="title">🗓️ Visitas programadas</h3>
@@ -258,7 +260,7 @@
         </div>
         <div><label>Vendedor</label><select id="agVendedor"><option value="">(todos)</option></select></div>
         <div><label>Gestor</label><select id="agGestor"><option value="">(todos)</option></select></div>
-        <div style="display:flex;align-items:end;justify-content:flex-end;"><button id="agOpenReport" class="btn">🧾 Gestión de visita</button> <button id="agExport" class="btn">⬇ Exportar CSV</button></div>
+        <div style="display:flex;align-items:end;justify-content:flex-end;"><button id="agExport" class="btn">⬇ Exportar CSV</button></div>
       </div>
       <div class="kanban" style="margin-top:10px;">
         <div class="kcol"><h4>Hoy</h4><div id="agHoy"></div></div>
@@ -271,53 +273,10 @@
     </div>
   </div>
 
-  
-  <!-- Modal Gestión de Visita -->
-  <div id="modalAgReporte" class="modal hidden" aria-modal="true" role="dialog">
-    <div class="card" style="width:min(1100px,96vw);">
-      <h3 class="title">🧾 Gestión de visita (Agenda)</h3>
-
-      <div class="grid grid-3">
-        <div><label>Desde</label><input id="gvDesde" type="date"></div>
-        <div><label>Hasta</label><input id="gvHasta" type="date"></div>
-        <div><label>Estatus</label>
-          <select id="gvStatus">
-            <option value="">(todos)</option>
-            <option>programada</option><option>asistió</option><option>no asistió</option>
-            <option>reprogramada</option><option>cancelada</option>
-          </select>
-        </div>
-        <div><label>Vendedor</label><select id="gvVendedor"><option value="">(todos)</option></select></div>
-        <div><label>Gestor</label><select id="gvGestor"><option value="">(todos)</option></select></div>
-        <div style="display:flex;align-items:end;justify-content:flex-end;">
-          <button id="gvExport" class="btn">⬇ Exportar CSV</button>
-        </div>
-      </div>
-
-      <div style="margin-top:8px;max-height:60vh;overflow:auto;border-radius:10px;">
-        <table class="table" id="gvTbl">
-          <thead>
-            <tr>
-              <th>Fecha</th><th>Hora</th><th>Día</th>
-              <th>Cliente</th><th>Cod</th>
-              <th>Vendedor</th><th>Gestor</th>
-              <th>Estatus</th><th>Tipo</th><th>Obs</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
-        <button id="btnGvCerrar" class="btn btn-soft">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
   <div class="errbar" id="errbar"></div>
 
 <script>
-// ======================= CONFIG =======================
+/* ======================= CONFIG ======================= */
 const DEFAULT_CONFIG = { 
   mode:'local', 
   sheets:{usuarios:'', clientes:'', calendario:''},
@@ -325,7 +284,7 @@ const DEFAULT_CONFIG = {
 };
 let CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 
-// ======================= DEMO DATA =======================
+/* ======================= DEMO DATA ======================= */
 const DEMO = {
   usuarios: [
     { Usuario:'demo', Password:'1234', gestor_servicio:'RENDY MEJIA', Vendedor:'RENDY MEJIA', Permiso:'administrador' },
@@ -342,14 +301,14 @@ const DEMO = {
   ]
 };
 
-// ======================= STATE =======================
+/* ======================= STATE ======================= */
 const STATE = {
   calls: [], users: [], clientes: [], calendario: [], joined: [], filtered: [],
   currentUser: null, selected: null,
   map: null, markers: [], colorByVendedor: {}, iconByColor: {}
 };
 
-// ======================= UTILS =======================
+/* ======================= UTILS ======================= */
 const JOIN_KEYS = ['Cod Empresa','CodEmpresa','Cod_Empresa','codigo_empresa','codigo','CodEmp','CodEmpresaId'];
 function norm(v){ return (v??'').toString().trim().toLowerCase(); }
 function stripAccents(s){ return (s??'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
@@ -365,7 +324,7 @@ function pick(row, keys){
 function parseCoord(val){
   if(val==null) return NaN;
   const s = String(val).trim();
-  let cleaned = s.replace(/[^0-9,\.\-]/g, '');
+  let cleaned = s.replace(/[^0-9,.\-]/g, '');
   if(cleaned.includes('.') && cleaned.includes(',')){ cleaned = cleaned.replace(/,/g,''); } else { cleaned = cleaned.replace(',', '.'); }
   const num = parseFloat(cleaned);
   return isFinite(num) ? num : NaN;
@@ -382,7 +341,7 @@ function uniqueSorted(arr){ return Array.from(new Set(arr.filter(x=>x!=null && x
 function showErr(msg){ const el=document.getElementById('errbar'); el.textContent=msg; el.style.display='block'; setTimeout(()=>{ el.style.display='none'; }, 2600); }
 function hashColor(name){ const s=(name||'').toString(); let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } const hue=Math.abs(h)%360; return `hsl(${hue} 80% 55%)`; }
 
-// ======================= CSV LOADER =======================
+/* ======================= CSV LOADER ======================= */
 async function fetchCSV(url){ const res = await fetch(url); if(!res.ok) throw new Error('HTTP '+res.status); const text = await res.text(); return parseCSV(text); }
 function parseCSV(text){
   const rows = []; const lines = text.split(/\r?\n/).filter(x=>x.trim().length>0); if(lines.length===0) return rows;
@@ -394,7 +353,7 @@ function parseCSV(text){
   return rows;
 }
 
-// ======================= DATA PREP =======================
+/* ======================= DATA PREP ======================= */
 function detectVendedor(row){
   const cand = row['Vendedor']||row['VENDEDOR']||row['vendedor']||row['Vendedor Asignado']||row['VENDEDOR ASIGNADO']||row['VendedorAsignado']||row['VENDEDOR_ASIGNADO']||getByGuess(row,[/vendedor/i,/seller/i,/salesrep/i]);
   if(cand && String(cand).trim()!=='') return cand;
@@ -425,7 +384,7 @@ function buildJoined(){
   if((CONFIG.excluirVendedores||[]).length){ STATE.joined = STATE.joined.filter(x=> !isVendorExcluded(x.vendedor) ); }
 }
 
-// ======================= UI RENDER =======================
+/* ======================= UI RENDER ======================= */
 function buildFilters(){
   const S=STATE.joined;
   fillSelect('fSemana', uniqueSorted(S.map(x=>x.semana)), 'Todas');
@@ -462,7 +421,7 @@ function renderTable(){
   STATE.filtered.forEach(x=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${x.cod}</td><td>${x.nombre}</td><td>${x.semana}</td><td>${x.dia}</td><td>${x.vendedor}</td><td>${x.gestor}</td><td>${x.empresa}</td>`; tr.style.cursor='pointer'; tr.onclick=()=>selectCliente(x); tb.appendChild(tr); });
 }
 
-// ===== Map with PIN icons =====
+/* ===== Map with PIN icons ===== */
 function initMap(){ if(STATE.map) return; const RD=[18.735693,-70.162651]; STATE.map=L.map('map',{zoomControl:true}).setView(RD,8); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(STATE.map); setTimeout(()=>STATE.map.invalidateSize(), 200); window.addEventListener('resize', ()=>STATE.map&&STATE.map.invalidateSize()); }
 function clearMarkers(){ STATE.markers.forEach(m=>STATE.map.removeLayer(m)); STATE.markers=[]; }
 function getVendedorColor(v){ if(!v) return '#9aa3b2'; if(!STATE.colorByVendedor[v]) STATE.colorByVendedor[v]=hashColor(v); return STATE.colorByVendedor[v]; }
@@ -480,11 +439,16 @@ function renderMap(){
 function selectCliente(x){ STATE.selected=x; document.getElementById('fCliente').value=x.cod; renderMap(); updateButtonsState(); }
 function updateButtonsState(){ const has=!!STATE.selected; document.getElementById('btnRegistrar').toggleAttribute('disabled', !has); document.getElementById('btnFicha').toggleAttribute('disabled', !has); }
 function updateStats(){ const t=STATE.joined.length, g=STATE.joined.filter(x=>isFinite(x.lat)&&isFinite(x.lon)).length, f=STATE.filtered.length; document.getElementById('statTotal').textContent=t; document.getElementById('statGeo').textContent=g; document.getElementById('statFilt').textContent=f; }
-function exportCSV(){ const headers=['Cod','Cliente','Semana','Dia','Vendedor','Gestor','Empresa','Latitud','Longitud']; const rows=STATE.filtered.map(x=>[x.cod,x.nombre,x.semana,x.dia,x.vendedor,x.gestor,x.empresa,x.lat||'',x.lon||'']); const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='clientes_filtrados.csv'; a.click(); URL.revokeObjectURL(a.href); }
-function csvEscape(v){ if(v==null) return ''; const s=String(v); return (s.includes(',')||s.includes('\"')||s.includes('\\n'))?('\"'+s.replace(/\"/g,'\"\"')+'\"'):s; }
+function exportCSV(){ const headers=['Cod','Cliente','Semana','Dia','Vendedor','Gestor','Empresa','Latitud','Longitud']; const rows=STATE.filtered.map(x=>[x.cod,x.nombre,x.semana,x.dia,x.vendedor,x.gestor,x.empresa,x.lat||'',x.lon||'']); const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='clientes_filtrados.csv'; a.click(); URL.revokeObjectURL(a.href); }
+function csvEscape(v){ if(v==null) return ''; const s=String(v); return (s.includes(',')||s.includes('"')||s.includes('\n'))?('"' + s.replace(/"/g,'""') + '"'):s; }
 
-// ======================= REGISTRAR LLAMADA =======================
+/* ======================= REGISTRAR LLAMADA ======================= */
 function formatDatetimeLocal(d){ const pad=n=> String(n).padStart(2,'0'); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function makeRecordId(record){
+  const cod = (record.cod_empresa||'').trim();
+  const fh  = (record.fecha_hora||'').trim();
+  return `${cod}__${fh}`;
+}
 function openCallModal(){
   if(!STATE.selected){ showErr('Debe seleccionar un cliente.'); return; }
   const x = STATE.selected;
@@ -506,14 +470,17 @@ function openCallModal(){
   const m=document.getElementById('modalLlamada'); m.classList.remove('hidden'); m.style.display='flex'; document.body.classList.add('no-scroll');
 }
 function closeCallModal(){ const m=document.getElementById('modalLlamada'); m.classList.add('hidden'); m.style.display='none'; document.body.classList.remove('no-scroll'); }
+
+/* === Upsert sin duplicados === */
 function saveCallRecord(){
   if(!STATE.selected){ showErr('Debe seleccionar un cliente.'); return; }
+  // Construimos el registro
   const record = {
     cliente: document.getElementById('callCliente').value.trim(),
     cod_empresa: document.getElementById('callCodEmpresa').value.trim(),
     vendedor: document.getElementById('callVendedor').value.trim(),
     gestor_servicio: document.getElementById('callGestor').value.trim(),
-    fecha_hora: document.getElementById('callFechaHora').value,
+    fecha_hora: document.getElementById('callFechaHora').value || formatDatetimeLocal(new Date()),
     resultado: document.getElementById('callResultado').value,
     duracion_seg: Number(document.getElementById('callDuracion').value||0),
     observaciones: document.getElementById('callObs').value.trim(),
@@ -524,15 +491,38 @@ function saveCallRecord(){
     cita_fecha: document.getElementById('callCitaFecha').value,
     cita_hora: document.getElementById('callCitaHora').value
   };
-  record.__id = record.__id || (record.cod_empresa+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7));
-  STATE.calls.push(record);
-  try{ const prev = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); prev.push(record); localStorage.setItem('llamadas_records', JSON.stringify(prev)); }catch(e){ console.error(e); }
-  document.getElementById('callStatus').textContent = 'Registro guardado localmente.';
-  setTimeout(()=>{ closeCallModal(); showErr('Llamada registrada.'); }, 400);
+  record.__id = makeRecordId(record);
+
+  // Upsert en memoria (STATE.calls)
+  const idxMem = STATE.calls.findIndex(x => x.__id === record.__id);
+  if(idxMem >= 0){ STATE.calls[idxMem] = record; } else { STATE.calls.push(record); }
+
+  // Upsert en localStorage
+  let prev = [];
+  try{ prev = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ prev=[]; }
+  const idx = prev.findIndex(x => x && x.__id === record.__id);
+  const nuevo = (idx < 0);
+  if(idx >= 0) prev[idx] = record; else prev.push(record);
+  try{ localStorage.setItem('llamadas_records', JSON.stringify(prev)); }catch(e){ console.error(e); }
+
+  document.getElementById('callStatus').textContent = nuevo ? 'Registro guardado (sin duplicados).' : 'Registro actualizado (sin duplicados).';
+  setTimeout(()=>{ closeCallModal(); showErr(nuevo ? 'Llamada registrada.' : 'Llamada actualizada.'); }, 400);
 }
 
-// ======================= REPORTE =======================
-function loadAllCallRecords(){ let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ local=[]; } return [...local, ...STATE.calls]; }
+/* ======================= REPORTE (deduplicado) ======================= */
+function loadAllCallRecords(){
+  let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ local=[]; }
+  const mem = STATE.calls || [];
+  // dedupe por __id
+  const map = new Map();
+  for(const r of [...local, ...mem]){
+    if(!r) continue;
+    const id = r.__id || makeRecordId(r);
+    if(!id) continue;
+    map.set(id, {...r, __id:id});
+  }
+  return Array.from(map.values());
+}
 function openReporte(){ renderReporte(); const m=document.getElementById('modalReporte'); m.classList.remove('hidden'); m.style.display='flex'; document.body.classList.add('no-scroll'); }
 function closeReporte(){ const m=document.getElementById('modalReporte'); m.classList.add('hidden'); m.style.display='none'; document.body.classList.remove('no-scroll'); }
 function repFilters(){ const desde = document.getElementById('repDesde').value; const hasta = document.getElementById('repHasta').value; const vend = norm(document.getElementById('repVendedor').value); const gest = norm(document.getElementById('repGestor').value); const res  = document.getElementById('repResultado').value; return {desde,hasta,vend,gest,res}; }
@@ -540,246 +530,247 @@ function renderReporte(){
   const all = loadAllCallRecords();
   const {desde,hasta,vend,gest,res} = repFilters();
   let ds = desde? new Date(desde+'T00:00:00') : null; let hs = hasta? new Date(hasta+'T23:59:59') : null;
-  const rows = all.filter(r=>{ let ok=true; const fh=r.fecha_hora||''; const d=fh?new Date(fh):null; if(ds && d && d<ds) ok=false; if(hs && d && d>hs) ok=false; if(vend && norm(r.vendedor)!==vend) ok=false; if(gest && norm(r.gestor_servicio)!==gest) ok=false; if(res && String(r.resultado)!==String(res)) ok=false; return ok; });
-  const tb=document.querySelector('#repTbl tbody'); tb.innerHTML=''; rows.forEach(r=>{ const cita=(r.cita_tipo && r.cita_tipo!=='sin_cita')?(r.cita_tipo+' '+(r.cita_fecha||'')+' '+(r.cita_hora||'')) : ''; const tr=document.createElement('tr'); tr.innerHTML = '<td>'+ (r.fecha_hora||'') +'</td><td>'+ (r.cliente||'') +'</td><td>'+ (r.cod_empresa||'') +'</td><td>'+ (r.vendedor||'') +'</td><td>'+ (r.gestor_servicio||'') +'</td><td>'+ (r.resultado||'') +'</td><td>'+ (r.duracion_seg||'') +'</td><td>'+ (r.observaciones||'') +'</td><td>'+ (r.provincia||'') +'</td><td>'+ (r.telefono1||'') +'</td><td>'+ (r.celular||'') +'</td><td>'+ cita +'</td>'; tb.appendChild(tr); });
-}
-function exportReporteCSV(){ const tb=document.querySelector('#repTbl tbody'); const headers=['Fecha/Hora','Cliente','Cod','Vendedor','Gestor','Resultado','Duración','Obs','Provincia','Tel1','Cel','Cita']; const rows=[...tb.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>td.textContent)); const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='reporte_llamadas.csv'; a.click(); URL.revokeObjectURL(a.href); }
-
-// ======================= AGENDA =======================
-function ensureId(r){ if(!r.__id){ r.__id = (r.cod_empresa||'')+'-'+(r.cita_fecha||'')+'-'+Math.random().toString(36).slice(2,7); } if(!r.estatus_visita) r.estatus_visita='programada'; return r; }
-function allCalls(){ let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ local=[]; } return [...local, ...STATE.calls].map(ensureId); }
-function openAgenda(){ buildAgendaFilters(); renderAgenda(); const m=document.getElementById('modalAgenda'); m.classList.remove('hidden'); m.style.display='flex'; document.body.classList.add('no-scroll'); }
-function closeAgenda(){ const m=document.getElementById('modalAgenda'); m.classList.add('hidden'); m.style.display='none'; document.body.classList.remove('no-scroll'); }
-function buildAgendaFilters(){
-  const data = allCalls().filter(c => c.cita_tipo && c.cita_tipo !== 'sin_cita');
-  const vends = [...new Set(data.map(x => x.vendedor).filter(Boolean))].sort();
-  const ges   = [...new Set(data.map(x => x.gestor_servicio).filter(Boolean))].sort();
-  const selV = document.getElementById('agVendedor'); const selG = document.getElementById('agGestor');
-  selV.innerHTML = '<option value="">(todos)</option>' + vends.map(v=>`<option>${v}</option>`).join('');
-  selG.innerHTML = '<option value="">(todos)</option>' + ges.map(v=>`<option>${v}</option>`).join('');
-}
-function agendaFilters(){ return { desde:document.getElementById('agDesde').value, hasta:document.getElementById('agHasta').value, vendedor:document.getElementById('agVendedor').value, gestor:document.getElementById('agGestor').value, status:document.getElementById('agStatus').value }; }
-function renderAgenda(){
-  const wrapHoy=document.getElementById('agHoy'), wrapSem=document.getElementById('agSemana'), wrapFut=document.getElementById('agFuturas'); [wrapHoy,wrapSem,wrapFut].forEach(w=>w.innerHTML='');
-  const {desde,hasta,vendedor,gestor,status} = agendaFilters(); const ds=desde?new Date(desde+'T00:00:00'):null; const hs=hasta?new Date(hasta+'T23:59:59'):null;
-  const items = allCalls().filter(r=>{ if(!r.cita_tipo || r.cita_tipo==='sin_cita') return false; const f=r.cita_fecha?new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')):null; if(ds && f && f<ds) return false; if(hs && f && f>hs) return false; if(vendedor && r.vendedor!==vendedor) return false; if(gestor && r.gestor_servicio!==gestor) return false; if(status && (r.estatus_visita||'programada')!==status) return false; return true; });
-  const today=new Date(); today.setHours(0,0,0,0); const endWeek=new Date(today); endWeek.setDate(today.getDate() + (7 - today.getDay()));
-  items.forEach(r=>{ const f=r.cita_fecha?new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')):null; const card=agendaCard(r); if(!f || f<today){ wrapSem.appendChild(card); } else if(f.toDateString()===today.toDateString()){ wrapHoy.appendChild(card); } else if(f<=endWeek){ wrapSem.appendChild(card); } else { wrapFut.appendChild(card); } });
-}
-function agendaCard(r){
-  const div=document.createElement('div'); div.className='kcard';
-  div.innerHTML=`
-    <div class="khead">${r.cliente||''}</div>
-    <div class="kmeta">${r.cod_empresa||''} • ${r.vendedor||''} • ${r.gestor_servicio||''}</div>
-    <div class="grid grid-3" style="margin-top:6px;">
-      <div><label>Fecha</label><input type="date" value="${r.cita_fecha||''}" data-id="${r.__id}" data-k="cita_fecha"></div>
-      <div><label>Hora</label><input type="time" value="${r.cita_hora||''}" data-id="${r.__id}" data-k="cita_hora"></div>
-      <div><label>Estatus</label>
-        <select data-id="${r.__id}" data-k="estatus_visita">
-          ${['programada','asistió','no asistió','reprogramada','cancelada'].map(s=>`<option ${((r.estatus_visita||'programada')===s)?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-    <div class="toolbar" style="justify-content:flex-end;margin-top:6px;">
-      <button class="btn btn-primary" data-save="${r.__id}">Guardar</button>
-    </div>
-    <div class="muted" style="margin-top:4px;">${r.observaciones||''}</div>`;
-  div.querySelector('[data-save]').addEventListener('click', ()=>{
-    const id = div.querySelector('[data-save]').getAttribute('data-save');
-    const fecha = div.querySelector('[data-id="'+id+'"][data-k="cita_fecha"]').value;
-    const hora  = div.querySelector('[data-id="'+id+'"][data-k="cita_hora"]').value;
-    const est   = div.querySelector('[data-id="'+id+'"][data-k="estatus_visita"]').value;
-    updateCallRecord(id, {cita_fecha:fecha, cita_hora:hora, estatus_visita:est});
-    renderAgenda(); showErr('Cita actualizada');
-  });
-
-  // add delete if admin
-  if(STATE.currentUser && STATE.currentUser.Permiso==='administrador'){
-    const bar = div.querySelector('.toolbar');
-    const delBtn = document.createElement('button');
-    delBtn.className='btn btn-danger';
-    delBtn.textContent='Eliminar';
-    delBtn.style.marginLeft='8px';
-    delBtn.addEventListener('click', ()=>{
-      if(!confirm('¿Eliminar esta cita?')) return;
-      // remove from STATE.calls and localStorage by __id
-      const id = (r.__id);
-      STATE.calls = STATE.calls.filter(x=> x.__id!==id);
-      let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ local=[]; }
-      local = local.filter(x=> x.__id!==id);
-      try{ localStorage.setItem('llamadas_records', JSON.stringify(local)); }catch(_){ }
-      renderAgenda(); showErr('Cita eliminada');
-    });
-    bar.appendChild(delBtn);
-  }
-  return div;
-}
-function updateCallRecord(id, patch){
-  STATE.calls = STATE.calls.map(r => r.__id===id ? {...r, ...patch} : r);
-  let local=[]; try{ local = JSON.parse(localStorage.getItem('llamadas_records')||'[]'); }catch(_){ local=[]; }
-  local = local.map(r => r.__id===id ? {...r, ...patch} : r);
-  localStorage.setItem('llamadas_records', JSON.stringify(local));
-}
-function exportAgendaCSV(){
-  const {desde,hasta,vendedor,gestor,status} = agendaFilters(); const ds=desde?new Date(desde+'T00:00:00'):null; const hs=hasta?new Date(hasta+'T23:59:59'):null;
-  const data = allCalls().filter(r=> r.cita_tipo && r.cita_tipo!=='sin_cita').filter(r=>{ const f=r.cita_fecha?new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')):null; if(ds && f && f<ds) return false; if(hs && f && f>hs) return false; if(vendedor && r.vendedor!==vendedor) return false; if(gestor && r.gestor_servicio!==gestor) return false; if(status && (r.estatus_visita||'programada')!==status) return false; return true; });
-  const headers=['Cliente','Cod','Vendedor','Gestor','Fecha','Hora','Estatus','Tipo','Obs']; const rows=data.map(r=>[r.cliente||'',r.cod_empresa||'',r.vendedor||'',r.gestor_servicio||'',r.cita_fecha||'',r.cita_hora||'',r.estatus_visita||'programada',r.cita_tipo||'',r.observaciones||'']); const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='agenda.csv'; a.click(); URL.revokeObjectURL(a.href);
-}
-
-// ======================= LOGIN =======================
-function doLogin(){ const u=val('loginUser').trim(), p=val('loginPass'); if(!u||!p){ showErr('Ingrese usuario y contraseña.'); return; } const ok=STATE.users.find(x=> norm(x.Usuario)===norm(u) && String(x.Password)===String(p) ); if(!ok){ showErr('Usuario o contraseña incorrectos.'); return; } STATE.currentUser = ok; document.getElementById('login').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); setTimeout(()=>STATE.map&&STATE.map.invalidateSize(), 50); applyFilters(); }
-
-// ======================= CONFIG MODAL =======================
-function openConfig(){ document.getElementById('cfgMode').value = CONFIG.mode; document.getElementById('cfgUsuarios').value = CONFIG.sheets.usuarios || ''; document.getElementById('cfgClientes').value = CONFIG.sheets.clientes || ''; document.getElementById('cfgCalendario').value = CONFIG.sheets.calendario || ''; document.getElementById('cfgExcluirVendedores').value = (CONFIG.excluirVendedores||[]).join('\\n'); document.getElementById('cfgStatus').textContent = ''; const m=document.getElementById('modalConfig'); m.classList.remove('hidden'); m.style.display='flex'; }
-function closeConfig(){ const m=document.getElementById('modalConfig'); m.classList.add('hidden'); m.style.display='none'; }
-async function testConfig(){ const u=val('cfgUsuarios').trim(), c=val('cfgClientes').trim(), k=val('cfgCalendario').trim(); const out=[]; async function tryFetch(name, url){ if(!url){ out.push(`${name}: (vacío)`); return; } try{ const arr=await fetchCSV(url); out.push(`${name}: OK (${arr.length} filas)`); }catch(e){ out.push(`${name}: ERROR (${e.message})`); } } await tryFetch('Usuarios',u); await tryFetch('Clientes',c); await tryFetch('Calendario',k); document.getElementById('cfgStatus').textContent = out.join(' • '); }
-function parseExcludeTextarea(){ const raw = document.getElementById('cfgExcluirVendedores').value || ''; return raw.split(/[\\r\\n]+/).map(s=>s.trim()).filter(Boolean); }
-function saveToLocalStorage(cfg){ try{ localStorage.setItem('llamadas_config', JSON.stringify(cfg)); return true; }catch(e){ console.error(e); showErr('No se pudo guardar configuración (localStorage).'); return false; } }
-function forceReload(){ try{ location.reload(); }catch(_){ try{ window.location.assign(window.location.pathname + '?r=' + Date.now()); }catch(__){} } }
-function saveConfig(){ const modeSel = val('cfgMode'); const usuarios = val('cfgUsuarios').trim(); const clientes = val('cfgClientes').trim(); const calendario = val('cfgCalendario').trim(); const shouldForceSheets = usuarios && clientes && calendario; const mode = (modeSel!=='sheets' && shouldForceSheets) ? 'sheets' : modeSel; const excluirVendedores = parseExcludeTextarea(); const cfg = { mode, sheets:{ usuarios, clientes, calendario }, excluirVendedores }; if(saveToLocalStorage(cfg)){ const s=document.getElementById('cfgStatus'); s.textContent='Configuración guardada. Recargando...'; document.getElementById('btnCfgGuardar').disabled=true; document.getElementById('btnCfgProbar').disabled=true; document.getElementById('btnCfgAplicar').disabled=true; setTimeout(()=>{ closeConfig(); forceReload(); }, 350); } }
-async function applyConfigNow(){ const usuarios = val('cfgUsuarios').trim(), clientes = val('cfgClientes').trim(), calendario = val('cfgCalendario').trim(); const excluirVendedores = parseExcludeTextarea(); const cfg = { mode:'sheets', sheets:{usuarios, clientes, calendario}, excluirVendedores }; saveToLocalStorage(cfg); document.getElementById('cfgStatus').textContent = 'Aplicando configuración... cargando datos'; try{ STATE.users = (await fetchCSV(usuarios)).map(mapUserRecord); STATE.clientes = await fetchCSV(clientes); STATE.calendario = await fetchCSV(calendario); CONFIG = cfg; document.getElementById('modeLabel').textContent = CONFIG.mode; document.getElementById('usersCount').textContent = STATE.users.length; buildJoined(); buildFilters(); applyFilters(); document.getElementById('cfgStatus').textContent = 'Listo. Puedes cerrar esta ventana.'; }catch(err){ document.getElementById('cfgStatus').textContent = 'Error cargando datos: ' + err.message; } }
-function clearConfig(){ try{ localStorage.removeItem('llamadas_config'); }catch(_){ } forceReload(); }
-
-// Toggle legend
-document.addEventListener('click', (e)=>{ if(e.target && e.target.id==='btnToggleLegend'){ const el = document.getElementById('legend'); const isHidden = el.classList.contains('hidden'); el.classList.toggle('hidden'); e.target.textContent = isHidden ? '👁️ Ocultar leyenda' : '👁️ Mostrar leyenda'; } });
-
-
-// ======= GESTIÓN DE VISITA (reporte de agenda) =======
-function openGvReporte(){
-  buildGvFilters(); renderGvReporte();
-  const m=document.getElementById('modalAgReporte');
-  m.classList.remove('hidden'); m.style.display='flex';
-  document.body.classList.add('no-scroll');
-}
-function closeGvReporte(){
-  const m=document.getElementById('modalAgReporte');
-  m.classList.add('hidden'); m.style.display='none';
-  document.body.classList.remove('no-scroll');
-}
-function buildGvFilters(){
-  const data = allCalls().filter(c => c.cita_tipo && c.cita_tipo !== 'sin_cita');
-  const vends = [...new Set(data.map(x => x.vendedor).filter(Boolean))].sort();
-  const ges   = [...new Set(data.map(x => x.gestor_servicio).filter(Boolean))].sort();
-  const selV = document.getElementById('gvVendedor');
-  const selG = document.getElementById('gvGestor');
-  selV.innerHTML = '<option value="">(todos)</option>' + vends.map(v=>`<option>${v}</option>`).join('');
-  selG.innerHTML = '<option value="">(todos)</option>' + ges.map(v=>`<option>${v}</option>`).join('');
-}
-function gvFilters(){
-  return {
-    desde: document.getElementById('gvDesde').value,
-    hasta: document.getElementById('gvHasta').value,
-    vendedor: document.getElementById('gvVendedor').value,
-    gestor: document.getElementById('gvGestor').value,
-    status: document.getElementById('gvStatus').value
-  };
-}
-function dayName(dateStr){
-  if(!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
-  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  return isNaN(d) ? '' : dias[d.getDay()];
-}
-function gvDataFiltered(){
-  const {desde,hasta,vendedor,gestor,status} = gvFilters();
-  const ds = desde? new Date(desde+'T00:00:00'):null;
-  const hs = hasta? new Date(hasta+'T23:59:59'):null;
-  return allCalls()
-    .filter(r => r.cita_tipo && r.cita_tipo!=='sin_cita')
-    .filter(r => {
-      const f = r.cita_fecha? new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')) : null;
-      if(ds && f && f<ds) return false;
-      if(hs && f && f>hs) return false;
-      if(vendedor && r.vendedor!==vendedor) return false;
-      if(gestor && r.gestor_servicio!==gestor) return false;
-      if(status && (r.estatus_visita||'programada')!==status) return false;
-      return true;
-    });
-}
-function renderGvReporte(){
-  const tb = document.querySelector('#gvTbl tbody');
-  tb.innerHTML = '';
-  gvDataFiltered().forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.cita_fecha||''}</td>
-      <td>${r.cita_hora||''}</td>
-      <td>${dayName(r.cita_fecha)||''}</td>
-      <td>${r.cliente||''}</td>
-      <td>${r.cod_empresa||''}</td>
-      <td>${r.vendedor||''}</td>
-      <td>${r.gestor_servicio||''}</td>
-      <td>${r.estatus_visita||'programada'}</td>
-      <td>${r.cita_tipo||''}</td>
-      <td>${r.observaciones||''}</td>`;
+  const rows = all.filter(r=>{
+    let ok=true; const fh=r.fecha_hora||''; const d=fh?new Date(fh):null;
+    if(ds && d && d<ds) ok=false;
+    if(hs && d && d>hs) ok=false;
+    if(vend && norm(r.vendedor)!==vend) ok=false;
+    if(gest && norm(r.gestor_servicio)!==gest) ok=false;
+    if(res && String(r.resultado)!==String(res)) ok=false;
+    return ok;
+  }).sort((a,b)=> String(a.fecha_hora).localeCompare(String(b.fecha_hora)));
+  const tb=document.querySelector('#repTbl tbody'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const cita=(r.cita_tipo && r.cita_tipo!=='sin_cita')?(r.cita_tipo+' '+(r.cita_fecha||'')+' '+(r.cita_hora||'')) : '';
+    const tr=document.createElement('tr'); tr.innerHTML =
+      '<td>'+ (r.fecha_hora||'') +'</td>'+
+      '<td>'+ (r.cliente||'') +'</td>'+
+      '<td>'+ (r.cod_empresa||'') +'</td>'+
+      '<td>'+ (r.vendedor||'') +'</td>'+
+      '<td>'+ (r.gestor_servicio||'') +'</td>'+
+      '<td>'+ (r.resultado||'') +'</td>'+
+      '<td>'+ (r.duracion_seg||'') +'</td>'+
+      '<td>'+ (r.observaciones||'') +'</td>'+
+      '<td>'+ (r.provincia||'') +'</td>'+
+      '<td>'+ (r.telefono1||'') +'</td>'+
+      '<td>'+ (r.celular||'') +'</td>'+
+      '<td>'+ cita +'</td>';
     tb.appendChild(tr);
   });
 }
-function exportGvCSV(){
-  const headers=['Fecha','Hora','Día','Cliente','Cod','Vendedor','Gestor','Estatus','Tipo','Obs'];
-  const rows = gvDataFiltered().map(r=>[
-    r.cita_fecha||'', r.cita_hora||'', dayName(r.cita_fecha)||'',
-    r.cliente||'', r.cod_empresa||'', r.vendedor||'', r.gestor_servicio||'',
-    r.estatus_visita||'programada', r.cita_tipo||'', r.observaciones||''
-  ]);
-  const csv=[headers.join(','), ...rows.map(r=>r.map(csvEscape).join(','))].join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download='gestion_de_visita.csv'; a.click();
-  URL.revokeObjectURL(a.href);
+function exportReporteCSV(){
+  const headers=['Fecha/Hora','Cliente','Cod','Vendedor','Gestor','Resultado','Duración','Obs','Provincia','Tel1','Cel','Cita'];
+  const rows = loadAllCallRecords().map(r=>{
+    const cita=(r.cita_tipo && r.cita_tipo!=='sin_cita')?(r.cita_tipo+' '+(r.cita_fecha||'')+' '+(r.cita_hora||'')) : '';
+    return [r.fecha_hora||'', r.cliente||'', r.cod_empresa||'', r.vendedor||'', r.gestor_servicio||'', r.resultado||'', r.duracion_seg||'', r.observaciones||'', r.provincia||'', r.telefono1||'', r.celular||'', cita];
+  });
+  const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='reporte_llamadas.csv'; a.click(); URL.revokeObjectURL(a.href);
 }
 
-// ======================= INIT =======================
-async function init(){
-  try{ const saved = JSON.parse(localStorage.getItem('llamadas_config')||'null'); if(saved && typeof saved==='object'){ CONFIG = Object.assign({}, DEFAULT_CONFIG, saved); CONFIG.sheets = Object.assign({}, DEFAULT_CONFIG.sheets, saved.sheets||{}); CONFIG.excluirVendedores = Array.isArray(saved.excluirVendedores) ? saved.excluirVendedores : DEFAULT_CONFIG.excluirVendedores; } }catch(_){}
+/* ======================= AGENDA (simple) ======================= */
+function openAgenda(){
+  buildAgendaFilters();
+  renderAgendaSimple();
+  const m=document.getElementById('modalAgenda'); m.classList.remove('hidden'); m.style.display='flex'; document.body.classList.add('no-scroll');
+}
+function closeAgenda(){ const m=document.getElementById('modalAgenda'); m.classList.add('hidden'); m.style.display='none'; document.body.classList.remove('no-scroll'); }
+function buildAgendaFilters(){
+  const data = loadAllCallRecords().filter(c => c.cita_tipo && c.cita_tipo !== 'sin_cita');
+  const vends = [...new Set(data.map(x => x.vendedor).filter(Boolean))].sort();
+  const ges   = [...new Set(data.map(x => x.gestor_servicio).filter(Boolean))].sort();
+  const selV = document.getElementById('agVendedor'); selV.innerHTML = '<option value="">(todos)</option>' + vends.map(v=>`<option>${v}</option>`).join('');
+  const selG = document.getElementById('agGestor'); selG.innerHTML = '<option value="">(todos)</option>' + ges.map(v=>`<option>${v}</option>`).join('');
+}
+function renderAgendaSimple(){
+  const hoyCont = document.getElementById('agHoy');
+  const semCont = document.getElementById('agSemana');
+  const futCont = document.getElementById('agFuturas');
+  hoyCont.innerHTML = semCont.innerHTML = futCont.innerHTML = '';
+
+  const desde = document.getElementById('agDesde').value;
+  const hasta = document.getElementById('agHasta').value;
+  const vend = document.getElementById('agVendedor').value;
+  const gest = document.getElementById('agGestor').value;
+  const status = document.getElementById('agStatus').value;
+
+  const all = loadAllCallRecords().filter(c => c.cita_tipo && c.cita_tipo !== 'sin_cita');
+  const now = new Date(); const ymd = d => d.toISOString().slice(0,10);
+  const start = desde? new Date(desde+'T00:00:00') : null;
+  const end   = hasta? new Date(hasta+'T23:59:59') : null;
+
+  const rows = all.filter(r=>{
+    const date = r.cita_fecha ? new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')) : null;
+    if(start && date && date < start) return false;
+    if(end && date && date > end) return false;
+    if(vend && r.vendedor !== vend) return false;
+    if(gest && r.gestor_servicio !== gest) return false;
+    if(status && (r.estatus_visita||'programada') !== status) return false;
+    return true;
+  }).sort((a,b)=> String(a.cita_fecha+a.cita_hora).localeCompare(String(b.cita_fecha+b.cita_hora)));
+
+  rows.forEach(r=>{
+    const date = r.cita_fecha ? new Date(r.cita_fecha+'T'+(r.cita_hora||'00:00')) : null;
+    const card = document.createElement('div');
+    card.className='kcard';
+    card.innerHTML = `<div class="khead">${r.cliente||'-'} <span class="kmeta">• ${r.vendedor||'-'}</span></div>
+                      <div class="kmeta">${r.cita_fecha||'-'} ${r.cita_hora||''} • ${r.cita_tipo||''}</div>
+                      <div class="kmeta">Cod ${r.cod_empresa||''} • ${r.gestor_servicio||''}</div>`;
+    if(date){
+      const todayStr = ymd(now);
+      const dateStr  = ymd(date);
+      const diffDays = Math.floor((date.setHours(0,0,0,0)-now.setHours(0,0,0,0))/86400000);
+      if(dateStr === todayStr) hoyCont.appendChild(card);
+      else if(diffDays >= 1 && diffDays <= 7) semCont.appendChild(card);
+      else futCont.appendChild(card);
+    } else {
+      futCont.appendChild(card);
+    }
+  });
+}
+function exportAgendaCSV(){
+  const headers=['Fecha','Hora','Cliente','Cod','Vendedor','Gestor','Tipo','Estatus','Obs'];
+  const rows = loadAllCallRecords().filter(c => c.cita_tipo && c.cita_tipo !== 'sin_cita').map(r=>[
+    r.cita_fecha||'', r.cita_hora||'', r.cliente||'', r.cod_empresa||'', r.vendedor||'', r.gestor_servicio||'', r.cita_tipo||'', r.estatus_visita||'programada', r.observaciones||''
+  ]);
+  const csv=[headers.join(','),...rows.map(r=>r.map(csvEscape).join(','))].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='agenda_visitas.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ======================= APP INIT & EVENTS ======================= */
+function init(){
+  // Demo/local mode por defecto
+  CONFIG = loadConfig();
   document.getElementById('modeLabel').textContent = CONFIG.mode;
 
-  if(CONFIG.mode==='sheets' && CONFIG.sheets.usuarios && CONFIG.sheets.clientes && CONFIG.sheets.calendario){
-    try{ STATE.users = (await fetchCSV(CONFIG.sheets.usuarios)).map(mapUserRecord); STATE.clientes = await fetchCSV(CONFIG.sheets.clientes); STATE.calendario = await fetchCSV(CONFIG.sheets.calendario); }catch(err){ console.error(err); showErr('Error cargando hojas. Pasando a modo demo local.'); fallbackToDemo(); }
-  }else{ fallbackToDemo(); }
-  if(!STATE.users.length){ fallbackToDemo(); }
-  document.getElementById('usersCount').textContent = STATE.users.length;
+  // Eventos UI
+  document.getElementById('btnLogin').addEventListener('click', login);
+  document.getElementById('btnOpenConfig').addEventListener('click', ()=>openConfig(true));
+  document.getElementById('btnOpenConfig2').addEventListener('click', ()=>openConfig(true));
 
-  buildJoined(); buildFilters(); updateStats(); applyFilters();
+  document.getElementById('btnToggleFiltros').addEventListener('click', ()=>document.getElementById('panelFiltros').classList.toggle('hidden'));
+  document.getElementById('btnToggleLegend').addEventListener('click', ()=>document.getElementById('legend').classList.toggle('hidden'));
 
-  // Events
-  document.getElementById('btnLogin').addEventListener('click', doLogin);
-  ['fSemana','fDia','fVendedor','fGestor','fEmpresa'].forEach(id=> document.getElementById(id).addEventListener('change', applyFilters));
-  document.getElementById('fBuscar').addEventListener('input', applyFilters);
-  document.getElementById('fCliente').addEventListener('change', ()=>{ const cod=val('fCliente'); const x=STATE.joined.find(r=> String(r.cod)===String(cod) ); if(x){ selectCliente(x); } else { STATE.selected=null; updateButtonsState(); } });
-  document.getElementById('btnExport').addEventListener('click', exportCSV);
-  document.getElementById('btnRestaurar').addEventListener('click', ()=>{ ['fSemana','fDia','fVendedor','fGestor','fEmpresa'].forEach(id=> document.getElementById(id).value=''); document.getElementById('fBuscar').value=''; document.getElementById('fCliente').value=''; STATE.selected=null; applyFilters(); });
-  document.getElementById('btnToggleFiltros').addEventListener('click', ()=>{ const p=document.getElementById('panelFiltros'); p.style.display=(p.style.display==='none')?'block':'none'; setTimeout(()=>STATE.map&&STATE.map.invalidateSize(),50); });
-
-  // Modales
   document.getElementById('btnRegistrar').addEventListener('click', openCallModal);
+  document.getElementById('btnReporte').addEventListener('click', openReporte);
+  document.getElementById('btnFicha').addEventListener('click', ()=>STATE.selected && alert(JSON.stringify(STATE.selected,null,2)));
+  document.getElementById('btnNuevoCliente').addEventListener('click', ()=>alert('Función demo'));
+  document.getElementById('btnExport').addEventListener('click', exportCSV);
+  document.getElementById('btnRestaurar').addEventListener('click', restoreDemo);
+
+  document.getElementById('fSemana').addEventListener('change', applyFilters);
+  document.getElementById('fDia').addEventListener('change', applyFilters);
+  document.getElementById('fVendedor').addEventListener('change', applyFilters);
+  document.getElementById('fGestor').addEventListener('change', applyFilters);
+  document.getElementById('fEmpresa').addEventListener('change', applyFilters);
+  document.getElementById('fBuscar').addEventListener('input', applyFilters);
+  document.getElementById('fCliente').addEventListener('change', applyFilters);
+
   document.getElementById('btnCallCancelar').addEventListener('click', closeCallModal);
   document.getElementById('btnCallGuardar').addEventListener('click', saveCallRecord);
 
-  document.getElementById('btnReporte').addEventListener('click', openReporte);
-  document.getElementById('btnRepCerrar').addEventListener('click', closeReporte);
-  document.getElementById('repExport').addEventListener('click', exportReporteCSV);
   document.getElementById('repDesde').addEventListener('change', renderReporte);
   document.getElementById('repHasta').addEventListener('change', renderReporte);
   document.getElementById('repVendedor').addEventListener('input', renderReporte);
   document.getElementById('repGestor').addEventListener('input', renderReporte);
   document.getElementById('repResultado').addEventListener('change', renderReporte);
+  document.getElementById('repExport').addEventListener('click', exportReporteCSV);
+  document.getElementById('btnRepCerrar').addEventListener('click', closeReporte);
 
   document.getElementById('btnAgenda').addEventListener('click', openAgenda);
   document.getElementById('btnAgCerrar').addEventListener('click', closeAgenda);
-  document.getElementById('agOpenReport').addEventListener('click', openGvReporte);
-  document.getElementById('btnGvCerrar').addEventListener('click', closeGvReporte);
-  ['gvDesde','gvHasta','gvStatus','gvVendedor','gvGestor'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', renderGvReporte); });
-  document.getElementById('gvExport').addEventListener('click', exportGvCSV);
-  ['agDesde','agHasta','agStatus','agVendedor','agGestor'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', renderAgenda); });
+  document.getElementById('agDesde').addEventListener('change', renderAgendaSimple);
+  document.getElementById('agHasta').addEventListener('change', renderAgendaSimple);
+  document.getElementById('agVendedor').addEventListener('change', renderAgendaSimple);
+  document.getElementById('agGestor').addEventListener('change', renderAgendaSimple);
+  document.getElementById('agStatus').addEventListener('change', renderAgendaSimple);
   document.getElementById('agExport').addEventListener('click', exportAgendaCSV);
 
-  // Global ESC
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeConfig(); closeReporte(); closeCallModal(); closeAgenda(); } });
+  loadDemoData();
 }
-function fallbackToDemo(){ STATE.users = DEMO.usuarios.map(mapUserRecord); STATE.clientes = DEMO.clientes; STATE.calendario = DEMO.calendario; }
+function login(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const user = STATE.users.find(x => x.Usuario===u && x.Password===p);
+  if(!user){ showErr('Usuario/contraseña inválidos'); return; }
+  STATE.currentUser = user;
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  initMap();
+  applyFilters();
+}
+function openConfig(show=true){
+  const m=document.getElementById('modalConfig');
+  if(show){ 
+    m.classList.remove('hidden'); m.style.display='flex'; document.body.classList.add('no-scroll');
+    const ex = (CONFIG.excluirVendedores||[]).join('\n');
+    document.getElementById('cfgMode').value = CONFIG.mode || 'local';
+    document.getElementById('cfgUsuarios').value = CONFIG.sheets.usuarios || '';
+    document.getElementById('cfgClientes').value = CONFIG.sheets.clientes || '';
+    document.getElementById('cfgCalendario').value = CONFIG.sheets.calendario || '';
+    document.getElementById('cfgExcluirVendedores').value = ex;
+  } else {
+    m.classList.add('hidden'); m.style.display='none'; document.body.classList.remove('no-scroll');
+  }
+}
+function loadConfig(){ try{ const c = JSON.parse(localStorage.getItem('llamadas_config')||'{}'); return Object.assign({}, DEFAULT_CONFIG, c); }catch(_){ return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); } }
+function saveConfig(){
+  const mode = document.getElementById('cfgMode').value;
+  const usuarios = document.getElementById('cfgUsuarios').value.trim();
+  const clientes  = document.getElementById('cfgClientes').value.trim();
+  const calendario= document.getElementById('cfgCalendario').value.trim();
+  const excluir   = document.getElementById('cfgExcluirVendedores').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  CONFIG = { mode, sheets:{usuarios,clientes,calendario}, excluirVendedores: excluir };
+  localStorage.setItem('llamadas_config', JSON.stringify(CONFIG));
+  document.getElementById('cfgStatus').textContent='Configuración guardada.';
+}
+function tryApplyConfig(){
+  const st = document.getElementById('cfgStatus');
+  if(CONFIG.mode!=='sheets'){ st.textContent='Modo local activo (demo).'; return; }
+  st.textContent='Cargando hojas...';
+  Promise.all([
+    CONFIG.sheets.usuarios? fetchCSV(CONFIG.sheets.usuarios) : Promise.resolve(DEMO.usuarios),
+    CONFIG.sheets.clientes? fetchCSV(CONFIG.sheets.clientes) : Promise.resolve(DEMO.clientes),
+    CONFIG.sheets.calendario? fetchCSV(CONFIG.sheets.calendario) : Promise.resolve(DEMO.calendario),
+  ]).then(([users, clientes, calendario])=>{
+    STATE.users = users.map(mapUserRecord);
+    STATE.clientes = clientes;
+    STATE.calendario = calendario;
+    document.getElementById('usersCount').textContent = STATE.users.length;
+    buildJoined(); buildFilters(); applyFilters();
+    st.textContent='Datos aplicados (sheets).';
+  }).catch(err=>{
+    console.error(err); st.textContent='Error al cargar hojas: '+err.message;
+  });
+}
+function bindConfigButtons(){
+  document.getElementById('btnCfgCerrar').addEventListener('click', ()=>openConfig(false));
+  document.getElementById('btnCfgGuardar').addEventListener('click', ()=>{ saveConfig(); location.reload(); });
+  document.getElementById('btnCfgLimpiar').addEventListener('click', ()=>{ localStorage.removeItem('llamadas_config'); CONFIG=JSON.parse(JSON.stringify(DEFAULT_CONFIG)); openConfig(false); location.reload(); });
+  document.getElementById('btnCfgProbar').addEventListener('click', tryApplyConfig);
+  document.getElementById('btnCfgAplicar').addEventListener('click', ()=>{
+    saveConfig();
+    tryApplyConfig();
+  });
+}
+function loadDemoData(){
+  if(CONFIG.mode==='sheets'){ tryApplyConfig(); return; }
+  // local demo
+  STATE.users = DEMO.usuarios.map(mapUserRecord);
+  STATE.clientes = DEMO.clientes;
+  STATE.calendario = DEMO.calendario;
+  document.getElementById('usersCount').textContent = STATE.users.length;
+  buildJoined(); buildFilters(); applyFilters();
+}
+function restoreDemo(){
+  if(confirm('¿Desea limpiar todos los registros locales de llamadas?')){ localStorage.removeItem('llamadas_records'); STATE.calls=[]; showErr('Registros locales limpiados.'); }
+}
 
-window.addEventListener('DOMContentLoaded', ()=>{ init(); initMap(); });
+/* boot */
+document.addEventListener('DOMContentLoaded', ()=>{
+  bindConfigButtons();
+  init();
+});
 </script>
 </body>
 </html>
